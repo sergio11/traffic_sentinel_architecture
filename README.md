@@ -40,6 +40,12 @@ curl -XPUT "http://192.168.0.55:9200/nyc-places/_mapping/popular-locations" -d'
 
 ![Upload and Submit Job](https://raw.githubusercontent.com/sergio11/flink-stream-taxi-ride/master/src/main/resources/screenshot/upload_and_submit_job_apache_flink.png "Upload and Submit Job")
 
+5. You can verify that the job has started running in the **"Running Jobs"** tab of the Apache Flink dashboard.
+
+![Verify Job Execution](https://raw.githubusercontent.com/sergio11/flink-stream-taxi-ride/master/src/main/resources/screenshot/verify_job_execution.png "Verify Job Execution")
+
+
+
 
 
 
