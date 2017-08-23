@@ -12,6 +12,6 @@ public class DIPConfiguration {
     public final static String  BULK_FLUSH_MAX_ACTIONS = "bulk.flush.max.actions";
     public final static String  CLUSTER_NAME = "cluster.name";
     public final static String  ELASTICSEARCH_IP_ADDRESS = "192.168.0.55";
-    public final static Integer    ELASTICSEARCH_PORT = 9200;
+    public final static Integer    ELASTICSEARCH_PORT = 9300;
     
 }
