@@ -1,6 +1,5 @@
 package sanchez.sanchez.sergio;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -82,7 +81,7 @@ public class PopularPlacesToElasticsearch {
 
 	List<InetSocketAddress> transports = new ArrayList<>();
 	transports.add(new InetSocketAddress(
-                InetAddress.getByName(DIPConfiguration.ELASTICSEARCH_HOSTNAME),
+                DIPConfiguration.ELASTICSEARCH_IP_ADDRESS,
                 DIPConfiguration.ELASTICSEARCH_PORT));
 
         popularPlaces.addSink(new ElasticsearchSink<>(config, transports, new PopularPlaceInserter()));
