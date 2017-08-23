@@ -14,7 +14,7 @@ This task requires to **count taxi ride events by cell id and event type (start 
 
 1. Create an index in elasticsearch called **"nyc-places"** from the web client Elastic HQ.
 
-![Create an index in elasticsearch](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png "Create an index in elasticsearch")
+![Create an index in elasticsearch](https://raw.githubusercontent.com/sergio11/flink-stream-taxi-ride/master/src/main/resources/screenshot/create_index_places.png "Create an index in elasticsearch")
 
 2. Create a schema mapping for the index (here called **popular-locations**):
 
@@ -34,9 +34,11 @@ curl -XPUT "http://192.168.0.55:9200/nyc-places/_mapping/popular-locations" -d'
 
 3. You can check its definition in the detail pane of a Mapping in Elastic HQ.
 
+![Verify Mapping on Elastic HQ](https://raw.githubusercontent.com/sergio11/flink-stream-taxi-ride/master/src/main/resources/screenshot/check_popular_locations_mapping.png "Verify Mapping on Elastic HQ")
 
 4. Now you can upload and launch the job using the Apache Flink dashboard.
 
+![Upload and Submit Job](https://raw.githubusercontent.com/sergio11/flink-stream-taxi-ride/master/src/main/resources/screenshot/upload_and_submit_job_apache_flink.png "Upload and Submit Job")
 
 
 
