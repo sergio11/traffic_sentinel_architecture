@@ -1,6 +1,6 @@
 package sanchez.sanchez.sergio;
 
-import java.net.InetSocketAddress;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,7 +17,11 @@ import sanchez.sanchez.sergio.filter.NYCFilter;
 import sanchez.sanchez.sergio.mapper.TaxiRideToGridCellAndEventTypeMapper;
 import sanchez.sanchez.sergio.source.TaxiRideSource;
 import org.apache.flink.streaming.api.windowing.time.Time;
-import org.apache.flink.streaming.connectors.elasticsearch2.ElasticsearchSink;
+import org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSink;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sanchez.sanchez.sergio.config.DIPConfiguration;
 import sanchez.sanchez.sergio.mapper.GridToCoordinatesMapper;
 import sanchez.sanchez.sergio.sink.PopularPlaceInserter;
@@ -31,6 +35,8 @@ import sanchez.sanchez.sergio.window.RideCounter;
  * It computes for each location the total number of persons that arrived by taxi.
  */
 public class PopularPlacesToElasticsearch {
+    
+    private static Logger logger = LoggerFactory.getLogger(PopularPlacesToElasticsearch.class);
     
     private final static int POP_THRESHOLD = 20; // threshold for popular places
     private final static int MAX_EVENT_DELAY = 60; // events are out of order by max 60 seconds
@@ -78,13 +84,13 @@ public class PopularPlacesToElasticsearch {
         // This instructs the sink to emit after every element, otherwise they would be buffered
         config.put(DIPConfiguration.BULK_FLUSH_MAX_ACTIONS, "10");
 	config.put(DIPConfiguration.CLUSTER_NAME, "elasticsearch");
+        config.put("http.enabled", "true");
+        
+        List<TransportAddress> transportAddresses = new ArrayList<>();
+        transportAddresses.add(new InetSocketTransportAddress(DIPConfiguration.ELASTICSEARCH_IP_ADDRESS, 
+        DIPConfiguration.ELASTICSEARCH_PORT));
 
-	List<InetSocketAddress> transports = new ArrayList<>();
-	transports.add(new InetSocketAddress(
-                DIPConfiguration.ELASTICSEARCH_IP_ADDRESS,
-                DIPConfiguration.ELASTICSEARCH_PORT));
-
-        popularPlaces.addSink(new ElasticsearchSink<>(config, transports, new PopularPlaceInserter()));
+        popularPlaces.addSink(new ElasticsearchSink<>(config, transportAddresses, new PopularPlaceInserter()));
         
         // execute the transformation pipeline
         env.execute("Popular Places to Elasticsearch");

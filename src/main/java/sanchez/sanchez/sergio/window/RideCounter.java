@@ -6,6 +6,8 @@ import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Counts the number of rides arriving or departing.
@@ -17,6 +19,7 @@ public class RideCounter implements WindowFunction<
         Tuple, // key type
         TimeWindow> // window type
 {
+    private static Logger logger = LoggerFactory.getLogger(RideCounter.class);
 
     @SuppressWarnings("unchecked")
     @Override
@@ -34,7 +37,8 @@ public class RideCounter implements WindowFunction<
         for (Tuple2<Integer, Boolean> c : gridCells) {
             cnt += 1;
         }
-
+        
+        logger.debug("CellId -> " + cellId + " Window Time -> " + windowTime + " isStart -> " + isStart + " Cnt -> " + cnt);
         out.collect(new Tuple4<>(cellId, windowTime, isStart, cnt));
     }
 }

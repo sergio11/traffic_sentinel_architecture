@@ -22,7 +22,7 @@ under the License.
 
 	<groupId>org.sanchez.sergio</groupId>
 	<artifactId>flink-stream-taxi-ride</artifactId>
-	<version>0.0.2-SNAPSHOT</version>
+	<version>0.0.6-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>Flink Stream Taxi Ride</name>
@@ -93,7 +93,7 @@ under the License.
 		</dependency>
                 <dependency>
                     <groupId>org.apache.flink</groupId>
-                    <artifactId>flink-connector-elasticsearch2_2.10</artifactId>
+                    <artifactId>flink-connector-elasticsearch_2.10</artifactId>
                     <version>${flink.version}</version>
                 </dependency>
                 <dependency>
