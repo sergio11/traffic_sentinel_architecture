@@ -34,9 +34,9 @@ import sanchez.sanchez.sergio.window.RideCounter;
  * The program processes a stream of taxi ride events from the New York City Taxi and Limousine Commission (TLC).
  * It computes for each location the total number of persons that arrived by taxi.
  */
-public class PopularPlacesToElasticsearch {
+public class PopularPlaces {
     
-    private static Logger logger = LoggerFactory.getLogger(PopularPlacesToElasticsearch.class);
+    private static Logger logger = LoggerFactory.getLogger(PopularPlaces.class);
     
     private final static int POP_THRESHOLD = 20; // threshold for popular places
     private final static int MAX_EVENT_DELAY = 60; // events are out of order by max 60 seconds
