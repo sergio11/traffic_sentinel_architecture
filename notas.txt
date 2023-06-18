@@ -1,0 +1,28 @@
+
+
+
+
+ffmpeg -i  -vframes 1 -q:v 2 output.jpg
+
+
+https://49-d2.divas.cloud/CHAN-8292/CHAN-8292_1.stream/playlist.m3u8?83.52.13.223&vdswztokenhash=DH8KZPNqvwauxU3LDnt81otpgf3hec2IRhXKtfsYOX4=
+
+
+docker run jrottenberg/ffmpeg -i "https://49-d2.divas.cloud/CHAN-8292/CHAN-8292_1.stream/playlist.m3u8?83.52.13.223&vdswztokenhash=DH8KZPNqvwauxU3LDnt81otpgf3hec2IRhXKtfsYOX4=" -stats  output%03d.jpg
+
+
+https://github.com/docker-java/docker-java/blob/main/docs/getting_started.md
+
+https://adaickalavan.github.io/portfolio/rtsp_video_streaming/#gsc.tab=0
+https://medium.com/codex/real-time-video-streaming-with-kafka-8b4014c06b24
+
+https://www.511la.org/developers/doc
+https://fl511.com/cctv?start=0&length=10&order%5Bi%5D=1&order%5Bdir%5D=asc
+https://opentrafficcam.org/overview/usecases/trafficsafety/
+
+https://github.com/HimaRaniMathews/Vehicle-Detection-Classification-and-Counting/blob/main/Programs/main.py
+https://github.com/kevinchen1223/Vehicle-Counting/blob/master/Vehicle_Counting.py
+https://github.com/ahmetozlu/vehicle_counting_tensorflow
+
+https://github.com/ahmetozlu/vehicle_counting_tensorflow/tree/master
+https://github.com/guptavasu1213/IoT-Traffic-Surveillance-System/tree/master
