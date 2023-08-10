@@ -3,70 +3,82 @@ import subprocess
 import time
 import paho.mqtt.client as mqtt
 import base64
-import uuid
 import requests
+import hashlib
+import uuid
 from threading import Thread
 import re
+import hvac
 
-# Dirección del servicio de autenticación
-auth_service_url = "http://auth_service_url/authenticate"
+# Retrieve configuration from environment variables
+auth_service_url = os.environ.get("AUTH_SERVICE_URL")
+mqtt_broker = os.environ.get("MQTT_BROKER")
+mqtt_port = int(os.environ.get("MQTT_PORT"))
+mqtt_topic = os.environ.get("MQTT_TOPIC")
+camera_url = os.environ.get("CAMERA_URL")
+output_directory = os.environ.get("OUTPUT_DIRECTORY")
+vault_url = os.environ.get("VAULT_URL")
+vault_token = os.environ.get("VAULT_TOKEN")
+vault_secret_path = os.environ.get("VAULT_SECRET_PATH")
+vault_field_name = os.environ.get("VAULT_FIELD_NAME")
 
-# Función para obtener la dirección MAC de la interfaz de red
 def get_mac_address():
     try:
         output = subprocess.check_output(["ifconfig", "eth0"], stderr=subprocess.STDOUT, text=True)
         mac_address = re.search(r"(\w\w:\w\w:\w\w:\w\w:\w\w:\w\w)", output).group(0)
         return mac_address
     except Exception as e:
-        print("Error al obtener la dirección MAC:", e)
+        print("Error obtaining MAC address:", e)
         return None
 
-# Función para autenticar la dirección MAC
-def authenticate_mac(mac):
+def authenticate_chap(mac, password):
     try:
-        response = requests.post(auth_service_url, json={"mac_address": mac})
-        if response.status_code == 200 and response.json().get("authorized"):
-            return True
+        challenge_response = requests.post(auth_service_url, json={"mac_address": mac})
+        if challenge_response.status_code == 200:
+            challenge = challenge_response.json().get("challenge")
+            response = hashlib.sha256((password + challenge).encode()).hexdigest()
+            auth_response = requests.post(auth_service_url, json={"mac_address": mac, "client_response": response})
+            if auth_response.status_code == 200:
+                return True
         return False
     except Exception as e:
-        print("Error al autenticar:", e)
+        print("Error during authentication:", e)
         return False
 
-# Configuración de MQTT
-mqtt_broker = "broker.example.com"
-mqtt_port = 8883  # Puerto seguro TLS/SSL
-mqtt_topic = "frames"
-
-# Configuración de la cámara IP
-camera_url = "rtsp://username:password@camera_ip_address:port/stream"
-
-# Directorio para guardar los frames locales
-output_directory = "frames/"
-
-# Obtener la dirección MAC del host
 mac_address = get_mac_address()
 
 if mac_address is None:
-    mac_address = str(uuid.uuid4())  # Generar un identificador único
+    mac_address = str(uuid.uuid4())
 
-# Inicialización del cliente MQTT
+def get_vault_secret(secret_path, field_name):
+    client = hvac.Client(url=vault_url, token=vault_token)
+    if client.is_authenticated():
+        response = client.read(secret_path)
+        if response and 'data' in response and field_name in response['data']:
+            return response['data'][field_name]
+    return None
+
+node_password = get_vault_secret(vault_secret_path, vault_field_name)
+
+if node_password is None:
+    print("Failed to retrieve password from Vault")
+    exit(1)
+
 client = mqtt.Client()
 
-# Configuración de autenticación y certificados
-client.username_pw_set(username="tu_usuario", password="tu_contraseña")
-client.tls_set(ca_certs="ruta_al_certificado_ca.crt")
+client.username_pw_set(username=os.environ.get("MQTT_USERNAME"), password=os.environ.get("MQTT_PASSWORD"))
+client.tls_set(ca_certs=os.environ.get("MQTT_CA_CERT"))
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        print("Connecting to MQTT broker")
+        print("Connected to MQTT broker")
     else:
-        print("An error ocurred when trying to connect to the MQTT broker:", rc)
+        print("Connection error with code:", rc)
 
 client.on_connect = on_connect
 
 client.connect(mqtt_broker, mqtt_port, 60)
 
-# Función para capturar y enviar frames
 def capture_and_send_frame(frame_path):
     try:
         subprocess.run(["ffmpeg", "-i", camera_url, "-vframes", "1", frame_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -81,7 +93,7 @@ def capture_and_send_frame(frame_path):
             }
             client.publish(mqtt_topic, payload=str(payload), qos=0)
             print("Frame sent to MQTT")
-        os.remove(frame_path)  # Elimina el frame del directorio local
+        os.remove(frame_path)
     except Exception as e:
         print("Error:", e)
 
@@ -97,11 +109,11 @@ def main():
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
 
-    if authenticate_mac(mac_address):
+    if authenticate_chap(mac_address, node_password):
         capture_thread = Thread(target=frame_capture_loop)
         capture_thread.start()
     else:
-        print("Authorization has failed")
+        print("Unauthorized node")
 
 if __name__ == "__main__":
     main()
