@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  scylla_db:
+    image: scylladb/scylla:4.5
+    container_name: scylla-container
+    ports:
+      - "9042:9042"
+    networks:
+      - auth_network
+
+  auth_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: auth-service
+    container_name: auth-service-container
+    ports:
+      - "5000:5000"
+    environment:
+      - SCYLLA_DB_HOST=scylla_db
+    networks:
+      - auth_network
+
+networks:
+  auth_network:
+    driver: bridge
