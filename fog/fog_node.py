@@ -7,20 +7,16 @@ import requests
 import hashlib
 import uuid
 from threading import Thread
-import re
-import hvac
 
-# Retrieve configuration from environment variables
-auth_service_url = os.environ.get("AUTH_SERVICE_URL")
 mqtt_broker = os.environ.get("MQTT_BROKER")
-mqtt_port = int(os.environ.get("MQTT_PORT"))
-mqtt_topic = os.environ.get("MQTT_TOPIC")
-camera_url = os.environ.get("CAMERA_URL")
-output_directory = os.environ.get("OUTPUT_DIRECTORY")
-vault_url = os.environ.get("VAULT_URL")
-vault_token = os.environ.get("VAULT_TOKEN")
-vault_secret_path = os.environ.get("VAULT_SECRET_PATH")
-vault_field_name = os.environ.get("VAULT_FIELD_NAME")
+mqtt_port = int(os.environ.get("MQTT_PORT", 1883))
+mqtt_topic = os.environ.get("MQTT_TOPIC", "frames")
+mqtt_username = os.environ.get("MQTT_USERNAME")
+mqtt_password = os.environ.get("MQTT_PASSWORD")
+mqtt_ca_cert = os.environ.get("MQTT_CA_CERT")
+auth_service_url = os.environ.get("AUTH_SERVICE_URL")
+node_password = os.environ.get("NODE_PASSWORD")
+
 
 def get_mac_address():
     try:
@@ -31,15 +27,22 @@ def get_mac_address():
         print("Error obtaining MAC address:", e)
         return None
 
-def authenticate_chap(mac, password):
+def get_challenge(mac_address):
     try:
-        challenge_response = requests.post(auth_service_url, json={"mac_address": mac})
-        if challenge_response.status_code == 200:
-            challenge = challenge_response.json().get("challenge")
-            response = hashlib.sha256((password + challenge).encode()).hexdigest()
-            auth_response = requests.post(auth_service_url, json={"mac_address": mac, "client_response": response})
-            if auth_response.status_code == 200:
-                return True
+        response = requests.post(f"{auth_service_url}/get_challenge", json={"mac_address": mac_address})
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("challenge")
+        return None
+    except Exception as e:
+        print("Error getting challenge:", e)
+        return None
+
+def authenticate_chap(mac_address, client_response):
+    try:
+        response = requests.post(f"{auth_service_url}/authenticate", json={"mac_address": mac_address, "client_response": client_response})
+        if response.status_code == 200:
+            return True
         return False
     except Exception as e:
         print("Error during authentication:", e)
@@ -50,24 +53,9 @@ mac_address = get_mac_address()
 if mac_address is None:
     mac_address = str(uuid.uuid4())
 
-def get_vault_secret(secret_path, field_name):
-    client = hvac.Client(url=vault_url, token=vault_token)
-    if client.is_authenticated():
-        response = client.read(secret_path)
-        if response and 'data' in response and field_name in response['data']:
-            return response['data'][field_name]
-    return None
-
-node_password = get_vault_secret(vault_secret_path, vault_field_name)
-
-if node_password is None:
-    print("Failed to retrieve password from Vault")
-    exit(1)
-
 client = mqtt.Client()
-
-client.username_pw_set(username=os.environ.get("MQTT_USERNAME"), password=os.environ.get("MQTT_PASSWORD"))
-client.tls_set(ca_certs=os.environ.get("MQTT_CA_CERT"))
+client.username_pw_set(username=mqtt_username, password=mqtt_password)
+client.tls_set(ca_certs=mqtt_ca_cert)
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
@@ -81,7 +69,7 @@ client.connect(mqtt_broker, mqtt_port, 60)
 
 def capture_and_send_frame(frame_path):
     try:
-        subprocess.run(["ffmpeg", "-i", camera_url, "-vframes", "1", frame_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(["ffmpeg", "-i", "camera_url", "-vframes", "1", frame_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         with open(frame_path, "rb") as frame_file:
             frame_data = frame_file.read()
             base64_frame = base64.b64encode(frame_data).decode('utf-8')
@@ -101,19 +89,25 @@ def frame_capture_loop():
     while True:
         timestamp = str(int(time.time()))
         frame_filename = f"frame_{timestamp}.jpg"
-        frame_path = os.path.join(output_directory, frame_filename)
+        frame_path = os.path.join("output_directory", frame_filename)
         capture_and_send_frame(frame_path)
         time.sleep(1)
 
 def main():
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
+    if not os.path.exists("output_directory"):
+        os.makedirs("output_directory")
 
-    if authenticate_chap(mac_address, node_password):
-        capture_thread = Thread(target=frame_capture_loop)
-        capture_thread.start()
+    challenge = get_challenge(mac_address)
+
+    if challenge:
+        client_response = hashlib.sha256((node_password + challenge).encode()).hexdigest()
+        if authenticate_chap(mac_address, client_response):
+            capture_thread = Thread(target=frame_capture_loop)
+            capture_thread.start()
+        else:
+            print("Unauthorized node")
     else:
-        print("Unauthorized node")
+        print("Error getting challenge")
 
 if __name__ == "__main__":
     main()
