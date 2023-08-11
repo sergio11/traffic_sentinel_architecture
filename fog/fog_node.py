@@ -6,6 +6,7 @@ import base64
 import requests
 import hashlib
 import uuid
+import re
 from threading import Thread
 
 mqtt_broker = os.environ.get("MQTT_BROKER")
@@ -15,8 +16,8 @@ mqtt_username = os.environ.get("MQTT_USERNAME")
 mqtt_password = os.environ.get("MQTT_PASSWORD")
 mqtt_ca_cert = os.environ.get("MQTT_CA_CERT")
 auth_service_url = os.environ.get("AUTH_SERVICE_URL")
-node_password = os.environ.get("NODE_PASSWORD")
-
+vault_address = os.environ.get("VAULT_ADDRESS", "http://vault:8200")
+vault_token = os.environ.get("VAULT_TOKEN", "default_vault_token")
 
 def get_mac_address():
     try:
@@ -47,6 +48,19 @@ def authenticate_chap(mac_address, client_response):
     except Exception as e:
         print("Error during authentication:", e)
         return False
+
+def get_node_password(mac_address):
+    try:
+        response = requests.get(
+            f"{vault_address}/v1/secret/data/users/{mac_address}",
+            headers={"X-Vault-Token": vault_token}
+        )
+        response_json = response.json()
+        node_password = response_json["data"]["password"]
+        return node_password
+    except Exception as e:
+        print("Error retrieving node password from Vault:", e)
+        return None
 
 mac_address = get_mac_address()
 
@@ -100,12 +114,16 @@ def main():
     challenge = get_challenge(mac_address)
 
     if challenge:
-        client_response = hashlib.sha256((node_password + challenge).encode()).hexdigest()
-        if authenticate_chap(mac_address, client_response):
-            capture_thread = Thread(target=frame_capture_loop)
-            capture_thread.start()
+        node_password = get_node_password(mac_address)
+        if node_password:
+            client_response = hashlib.sha256((node_password + challenge).encode()).hexdigest()
+            if authenticate_chap(mac_address, client_response):
+                capture_thread = Thread(target=frame_capture_loop)
+                capture_thread.start()
+            else:
+                print("Unauthorized node")
         else:
-            print("Unauthorized node")
+            print("Error retrieving node password from Vault")
     else:
         print("Error getting challenge")
 

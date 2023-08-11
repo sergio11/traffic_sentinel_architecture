@@ -1,13 +1,32 @@
 from flask import Flask, request, jsonify
-from cassandra.cluster import Cluster
 import hashlib
 import uuid
+import requests
+import os
+import redis
 
 app = Flask(__name__)
 
-# Conectar a la base de datos ScyllaDB
-cluster = Cluster(['scylla_db'])
-session = cluster.connect('auth_keyspace')
+# Vault Configuration
+VAULT_ADDRESS = os.environ.get("VAULT_ADDRESS", "http://vault:8200")
+VAULT_TOKEN = os.environ.get("VAULT_TOKEN", "default_vault_token")
+
+# Redis Configuration
+REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
+REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
+redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0)
+
+def get_stored_password(mac_address):
+    try:
+        response = requests.get(
+            f"{VAULT_ADDRESS}/v1/secret/data/users/{mac_address}",
+            headers={"X-Vault-Token": VAULT_TOKEN}
+        )
+        response_json = response.json()
+        stored_password = response_json["data"]["password"]
+        return stored_password
+    except Exception as e:
+        raise Exception("Error retrieving stored password from Vault")
 
 @app.route('/get_challenge', methods=['POST'])
 def get_challenge():
@@ -15,16 +34,15 @@ def get_challenge():
         data = request.get_json()
         mac_address = data.get('mac_address')
         
-        query = "SELECT password FROM users WHERE mac_address = %s"
-        result = session.execute(query, (mac_address,))
+        stored_password = get_stored_password(mac_address)
         
-        if result:
-            stored_password = result[0].password
-            challenge = str(uuid.uuid4())  # Generar un reto único
-            response = hashlib.sha256((stored_password + challenge).encode()).hexdigest()
-            return jsonify(challenge=challenge, response=response), 200
-        else:
-            return jsonify(message='MAC address not found'), 404
+        challenge = str(uuid.uuid4())  # Generar un reto único
+
+        # Store the password + challenge in Redis
+        redis_key = f"{mac_address}_challenge"
+        redis_client.set(redis_key, hashlib.sha256((stored_password + challenge).encode()).hexdigest())
+        
+        return jsonify(challenge=challenge), 200
     except Exception as e:
         return jsonify(message=str(e)), 500
 
@@ -35,20 +53,18 @@ def authenticate():
         mac_address = data.get('mac_address')
         client_response = data.get('client_response')
         
-        query = "SELECT password, challenge FROM users WHERE mac_address = %s"
-        result = session.execute(query, (mac_address,))
+        # Retrieve the password + challenge from Redis
+        redis_key = f"{mac_address}_challenge"
+        stored_result = redis_client.get(redis_key)
         
-        if result:
-            stored_password = result[0].password
-            stored_challenge = result[0].challenge
-            expected_response = hashlib.sha256((stored_password + stored_challenge).encode()).hexdigest()
-            
+        if stored_result:
+            expected_response = stored_result.decode('utf-8')
             if client_response == expected_response:
                 return jsonify(message='Authentication successful'), 200
             else:
                 return jsonify(message='Authentication failed'), 401
         else:
-            return jsonify(message='MAC address not found'), 404
+            return jsonify(message='Challenge not found'), 404
     except Exception as e:
         return jsonify(message=str(e)), 500
 

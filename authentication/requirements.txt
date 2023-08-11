@@ -1,2 +1,3 @@
-Flask==2.0.1
-cassandra-driver==3.25.0
+flask==2.0.2
+requests==2.26.0
+redis==3.5.3
