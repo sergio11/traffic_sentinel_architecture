@@ -1,131 +1,85 @@
-import os
-import subprocess
-import time
-import paho.mqtt.client as mqtt
+from pyflink.datastream import StreamExecutionEnvironment
+from pyflink.table import StreamTableEnvironment
+from pyflink.table.descriptors import Kafka, Json
+from vehicle_detection_tracker import VehicleDetectionTracker
+import cv2
+import numpy as np
+import io
 import base64
-import requests
-import hashlib
-import uuid
-import re
-from threading import Thread
+import json
 
-mqtt_broker = os.environ.get("MQTT_BROKER")
-mqtt_port = int(os.environ.get("MQTT_PORT", 1883))
-mqtt_topic = os.environ.get("MQTT_TOPIC", "frames")
-mqtt_username = os.environ.get("MQTT_USERNAME")
-mqtt_password = os.environ.get("MQTT_PASSWORD")
-mqtt_ca_cert = os.environ.get("MQTT_CA_CERT")
-auth_service_url = os.environ.get("AUTH_SERVICE_URL")
-vault_address = os.environ.get("VAULT_ADDRESS", "http://vault:8200")
-vault_token = os.environ.get("VAULT_TOKEN", "default_vault_token")
+def decode_image(base64_string):
+    image_bytes = base64.b64decode(base64_string)
+    image_array = np.frombuffer(image_bytes, dtype=np.uint8)
+    image = cv2.imdecode(image_array, flags=cv2.IMREAD_COLOR)
+    return image
 
-def get_mac_address():
-    try:
-        output = subprocess.check_output(["ifconfig", "eth0"], stderr=subprocess.STDOUT, text=True)
-        mac_address = re.search(r"(\w\w:\w\w:\w\w:\w\w:\w\w:\w\w)", output).group(0)
-        return mac_address
-    except Exception as e:
-        print("Error obtaining MAC address:", e)
-        return None
-
-def get_challenge(mac_address):
-    try:
-        response = requests.post(f"{auth_service_url}/get_challenge", json={"mac_address": mac_address})
-        if response.status_code == 200:
-            data = response.json()
-            return data.get("challenge")
-        return None
-    except Exception as e:
-        print("Error getting challenge:", e)
-        return None
-
-def authenticate_chap(mac_address, client_response):
-    try:
-        response = requests.post(f"{auth_service_url}/authenticate", json={"mac_address": mac_address, "client_response": client_response})
-        if response.status_code == 200:
-            return True
-        return False
-    except Exception as e:
-        print("Error during authentication:", e)
-        return False
-
-def get_node_password(mac_address):
-    try:
-        response = requests.get(
-            f"{vault_address}/v1/secret/data/users/{mac_address}",
-            headers={"X-Vault-Token": vault_token}
-        )
-        response_json = response.json()
-        node_password = response_json["data"]["password"]
-        return node_password
-    except Exception as e:
-        print("Error retrieving node password from Vault:", e)
-        return None
-
-mac_address = get_mac_address()
-
-if mac_address is None:
-    mac_address = str(uuid.uuid4())
-
-client = mqtt.Client()
-client.username_pw_set(username=mqtt_username, password=mqtt_password)
-client.tls_set(ca_certs=mqtt_ca_cert)
-
-def on_connect(client, userdata, flags, rc):
-    if rc == 0:
-        print("Connected to MQTT broker")
-    else:
-        print("Connection error with code:", rc)
-
-client.on_connect = on_connect
-
-client.connect(mqtt_broker, mqtt_port, 60)
-
-def capture_and_send_frame(frame_path):
-    try:
-        subprocess.run(["ffmpeg", "-i", "camera_url", "-vframes", "1", frame_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        with open(frame_path, "rb") as frame_file:
-            frame_data = frame_file.read()
-            base64_frame = base64.b64encode(frame_data).decode('utf-8')
-            timestamp = int(time.time())
-            payload = {
-                "mac_address": mac_address,
-                "timestamp": timestamp,
-                "frame_data": base64_frame
-            }
-            client.publish(mqtt_topic, payload=str(payload), qos=0)
-            print("Frame sent to MQTT")
-        os.remove(frame_path)
-    except Exception as e:
-        print("Error:", e)
-
-def frame_capture_loop():
-    while True:
-        timestamp = str(int(time.time()))
-        frame_filename = f"frame_{timestamp}.jpg"
-        frame_path = os.path.join("output_directory", frame_filename)
-        capture_and_send_frame(frame_path)
-        time.sleep(1)
+def process_frame(tracker, payload):
+    mac_address = payload['mac_address']
+    timestamp = payload['timestamp']
+    base64_frame = payload['frame_data']
+    
+    frame = decode_image(base64_frame)
+    processed_frame = tracker.process_frame(frame)
+    
+    processed_payload = {
+        'mac_address': mac_address,
+        'timestamp': timestamp,
+        'processed_frame': processed_frame.tolist()  # Convert processed_frame to list for JSON serialization
+    }
+    return json.dumps(processed_payload)
 
 def main():
-    if not os.path.exists("output_directory"):
-        os.makedirs("output_directory")
+    env = StreamExecutionEnvironment.get_execution_environment()
+    t_env = StreamTableEnvironment.create(env)
 
-    challenge = get_challenge(mac_address)
+    # Configurar la conexión a Kafka para la entrada
+    t_env.connect(
+        Kafka()
+        .version("universal")
+        .topic("input_topic")
+        .start_from_earliest()
+        .property("bootstrap.servers", "localhost:9092")
+        .property("group.id", "flink-consumer-group")
+    )
+    # Configurar el formato de entrada (JSON)
+    t_env.with_format(
+        Json()
+        .json_schema(
+            """
+            {
+                "type": "object",
+                "properties": {
+                    "mac_address": {"type": "string"},
+                    "timestamp": {"type": "integer"},
+                    "frame_data": {"type": "string"}
+                }
+            }
+            """
+        )
+        .fail_on_missing_field(True)
+    )
+    # Registrar la tabla de entrada
+    t_env.create_temporary_table("KafkaTable", "frame_data")
 
-    if challenge:
-        node_password = get_node_password(mac_address)
-        if node_password:
-            client_response = hashlib.sha256((node_password + challenge).encode()).hexdigest()
-            if authenticate_chap(mac_address, client_response):
-                capture_thread = Thread(target=frame_capture_loop)
-                capture_thread.start()
-            else:
-                print("Unauthorized node")
-        else:
-            print("Error retrieving node password from Vault")
-    else:
-        print("Error getting challenge")
+    # Crear una instancia de VehicleDetectionTracker
+    yolo_cfg = "path_to_yolov4.cfg"
+    yolo_weights = "path_to_yolov4.weights"
+    yolo_classes = "path_to_coco.names"
+    deep_sort_model = "path_to_deep_sort.pb"
+    tracker = VehicleDetectionTracker(yolo_cfg, yolo_weights, yolo_classes, deep_sort_model)
 
-if __name__ == "__main__":
+    # Definir la consulta para procesar los frames y llamar al método process_frame del VehicleDetectionTracker
+    t_env.from_path("KafkaTable")\
+        .select("process_frame(frame_data) AS processed_payload")\
+        .to_append_stream(t_env.sink_to_kafka(
+            "frame_processed",
+            {"bootstrap.servers": "localhost:9092"},
+            value_delimiter="\n"
+        ))
+
+    # Ejecutar el programa
+    env.execute("VehicleDetectionProgram")
+
+if __name__ == '__main__':
     main()

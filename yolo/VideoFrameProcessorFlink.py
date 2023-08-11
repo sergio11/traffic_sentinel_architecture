@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import io
 import base64
+import json
 
 def decode_image(base64_string):
     image_bytes = base64.b64decode(base64_string)
@@ -22,7 +23,7 @@ def main():
     env = StreamExecutionEnvironment.get_execution_environment()
     t_env = StreamTableEnvironment.create(env)
 
-    # Configurar la conexión a Kafka
+    # Configurar la conexión a Kafka para la entrada
     t_env.connect(
         Kafka()
         .version("universal")
@@ -59,10 +60,15 @@ def main():
     # Definir la consulta para procesar los frames y llamar al método process_frame del VehicleDetectionTracker
     t_env.from_path("KafkaTable")\
         .select("process_frame(frame) AS processed_frame")\
-        .execute_insert("ProcessedFrames")
+        .to_append_stream(t_env.sink_to_kafka(
+            "frame_processed",
+            {"bootstrap.servers": "localhost:9092"},
+            value_delimiter="\n"
+        ))
 
     # Ejecutar el programa
     env.execute("VehicleDetectionProgram")
 
 if __name__ == '__main__':
     main()
+

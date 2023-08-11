@@ -6,15 +6,19 @@ from deep_sort import DeepSort
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from deep_sort import generate_detections as gdet
+import redis
+
 
 class VehicleDetectionTracker:
-    def __init__(self, yolo_cfg, yolo_weights, yolo_classes, deep_sort_model, max_cosine_distance=0.3, nn_budget=None):
+    def __init__(self, yolo_cfg, yolo_weights, yolo_classes, deep_sort_model, redis_host, redis_port, max_cosine_distance=0.3, nn_budget=None):
         self.net, self.classes, self.output_layers = self.load_yolo(yolo_cfg, yolo_weights, yolo_classes)
         
         self.encoder = gdet.create_box_encoder(deep_sort_model, batch_size=1)
         self.metric = "cosine"
         self.tracker = Tracker(self.metric, max_cosine_distance, nn_budget)
-    
+        self.redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
+
+
     def load_yolo(self, yolo_cfg, yolo_weights, yolo_classes):
         net = cv2.dnn.readNet(yolo_weights, yolo_cfg)
         classes = []
@@ -119,6 +123,16 @@ class VehicleDetectionTracker:
         else:
             return "Large"
 
+    def determine_vehicle_type(self, area):
+        if area < 10000:
+            return "car"
+        elif area < 25000:
+            return "truck"
+        elif area < 40000:
+            return "bus"
+        else:
+            return "unknown"
+
     def detect_license_plate(self, frame, x, y, w, h):
         vehicle_region = frame[y:y+h, x:x+w]
         gray_vehicle = cv2.cvtColor(vehicle_region, cv2.COLOR_BGR2GRAY)
@@ -136,35 +150,56 @@ class VehicleDetectionTracker:
 
         return license_plate
 
-    def process_frame(self, frame):
+    def process_frame(self, frame, node_id):
         detected_objects = self.detect_objects(frame)
 
         boxes = np.array([d.tlwh for d in detected_objects])
         scores = np.array([d.confidence for d in detected_objects])
         indices = self.tracker.update(boxes, scores, frame)
 
+        result_data = []
+
         for i in indices:
             box = boxes[i]
             x, y, w, h = map(int, box)
             label = detected_objects[i].class_name
             confidence = detected_objects[i].confidence
+            vehicle_id = self.tracker.tracks[i].track_id
+            vehicle_speed = self.calculate_speed(x, y)
+            vehicle_color = self.determine_color(frame, x, y, w, h)
+            vehicle_size = self.determine_size(w * h)
+            license_plate = self.detect_license_plate(frame, x, y, w, h)
+            vehicle_type = self.determine_vehicle_type(w * h)
+
+            result_data.append({
+                "id": vehicle_id,
+                "label": label,
+                "confidence": confidence,
+                "speed": vehicle_speed,
+                "color": vehicle_color,
+                "size": vehicle_size,
+                "license_plate": license_plate,
+                "vehicle_type": vehicle_type
+            })
 
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
             cv2.putText(frame, f"{label} {confidence:.2f}", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-            vehicle_speed = self.calculate_speed(x, y)
             cv2.putText(frame, f"Speed: {vehicle_speed:.2f} px/s", (x, y - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-            vehicle_color = self.determine_color(frame, x, y, w, h)
             cv2.putText(frame, f"Color: {vehicle_color}", (x, y - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-            vehicle_size = self.determine_size(w * h)
             cv2.putText(frame, f"Size: {vehicle_size}", (x, y - 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-            license_plate = self.detect_license_plate(frame, x, y, w, h)
             cv2.putText(frame, f"Plate: {license_plate}", (x, y - 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-        return frame
+            if not self.redis_client.sismember(f"vehicle_history:{node_id}", vehicle_id):
+                self.redis_client.sadd(f"vehicle_history:{node_id}", vehicle_id)
+                self.redis_client.hincrby(f"vehicle_counters:{node_id}", "total_vehicles", 1)
+                self.redis_client.hincrby(f"vehicle_counters:{node_id}", f"{vehicle_type}_vehicles", 1)
+       
+        response_json = {
+            "frame_data": frame,
+            "tracked_objects": result_data
+        }
+
+        return response_json
 
 if __name__ == "__main__":
     yolo_cfg = "path_to_yolov4.cfg"
