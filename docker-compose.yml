@@ -1,8 +1,19 @@
-version: "2.2"
+version: "3"
+
+# Volumes
+volumes:
+  zookeeper-data:
+    driver: local
+  zookeeper-log:
+    driver: local
+  kafka-data:
+    driver: local
+
 services:
+  # Apache Flink Job Manager for managing Flink applications
   jobmanager:
     build:
-      context: .
+      context: ./flink
     ports:
       - "8081:8081"
     command: jobmanager
@@ -10,10 +21,13 @@ services:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager        
+    networks:
+      - flink-network
 
+  # Apache Flink Task Manager for executing Flink tasks
   taskmanager:
     build:
-      context: .
+      context: ./flink
     depends_on:
       - jobmanager
     command: taskmanager
@@ -23,14 +37,115 @@ services:
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager
         taskmanager.numberOfTaskSlots: 2
-  sql-client:
-    build:
-      context: .
-    command: bin/sql-client.sh
-    depends_on:
-      - jobmanager
+    networks:
+      - flink-network
+
+  # Apache ZooKeeper is an effort to develop and maintain an open-source server which enables highly reliable distributed coordination.
+  zookeeper:
+    image: confluentinc/cp-zookeeper
+    container_name: zookeeper
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-log:/var/lib/zookeeper/log
     environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
-        rest.address: jobmanager
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - flink-network
+
+  # Apache Kafka is an open-source distributed event streaming platform used 
+  # by thousands of companies for high-performance data pipelines, 
+  # streaming analytics, data integration, and mission-critical applications.
+  kafka:
+    image: confluentinc/cp-kafka
+    container_name: kafka
+    volumes:
+      - kafka-data:/var/lib/kafka
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_NUM_PARTITIONS: 12
+      KAFKA_COMPRESSION_TYPE: gzip
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
+      KAFKA_JMX_PORT: 9091
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    links:
+      - zookeeper
+    networks:
+      - flink-network
+
+  # Manage & view data inside your Apache Kafka ® cluster
+  akhq:
+    image: tchiotludo/akhq
+    container_name: akhq
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            docker-kafka-server:
+              properties:
+                bootstrap.servers: "kafka:9092"
+    ports:
+      - 8088:8080
+    links:
+      - kafka
+    networks:
+      - flink-network
+
+  # Eclipse Mosquitto MQTT broker for message communication
+  mosquitto:
+    image: eclipse-mosquitto:2.0.14
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+    networks:
+      - flink-network
+
+  # HashiCorp Vault for managing secrets and protecting sensitive data
+  vault:
+    image: vault:1.8.4
+    restart: on-failure
+    container_name: vault
+    volumes:
+      - ./vault/config:/vault/config
+      - ./vault/policies:/vault/policies
+      - ./vault/data:/vault/data
+    ports:
+      - 8200:8200
+    environment:
+      - VAULT_ADDR=http://0.0.0.0:8200
+      - VAULT_API_ADDR=http://0.0.0.0:8200
+      - VAULT_ADDRESS=http://0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    command: vault server -config=/vault/config/vault.json
+    networks:
+      - flink-network
+
+  # ScyllaDB NoSQL database for storing data
+  scylla:
+    image: scylladb/scylla:4.5.2
+    container_name: scylla-container
+    ports:
+      - "9042:9042"
+    networks:
+      - flink-network
+
+  # Flask-based authentication service for authorization and authentication
+  auth_service:
+    build:
+      context: ./authentication
+    image: auth-service
+    container_name: auth-service-container
+    ports:
+      - "5000:5000"
+    depends_on:
+      - scylla
+    networks:
+      - flink-network
+
+networks:
+  flink-network:
+    driver: bridge
