@@ -8,42 +8,18 @@ volumes:
     driver: local
   kafka-data:
     driver: local
+  redis-data:
+    driver: local
 
 services:
-  # Apache Flink Job Manager for managing Flink applications
-  jobmanager:
-    build:
-      context: ./flink
-    ports:
-      - "8081:8081"
-    command: jobmanager
-    environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager        
-    networks:
-      - flink-network
-
-  # Apache Flink Task Manager for executing Flink tasks
-  taskmanager:
-    build:
-      context: ./flink
-    depends_on:
-      - jobmanager
-    command: taskmanager
-    scale: 1
-    environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
-        taskmanager.numberOfTaskSlots: 2
-    networks:
-      - flink-network
 
   # Apache ZooKeeper is an effort to develop and maintain an open-source server which enables highly reliable distributed coordination.
   zookeeper:
     image: confluentinc/cp-zookeeper
     container_name: zookeeper
+    # ZooKeeper is designed to "fail-fast", so it is important to allow it to
+    # restart automatically.
+    restart: unless-stopped
     volumes:
       - zookeeper-data:/var/lib/zookeeper/data
       - zookeeper-log:/var/lib/zookeeper/log
@@ -61,17 +37,25 @@ services:
     volumes:
       - kafka-data:/var/lib/kafka
     environment:
+      # Required. Instructs Kafka how to get in touch with ZooKeeper.
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_NUM_PARTITIONS: 12
       KAFKA_COMPRESSION_TYPE: gzip
+      # Required when running in a single-node cluster, as we are. We would be able to take the default if we had
+      # three or more nodes in the cluster.
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # Required. Kafka will publish this address to ZooKeeper so clients know
+      # how to get in touch with Kafka. "PLAINTEXT" indicates that no authentication
+      # mechanism will be used.
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
       KAFKA_JMX_PORT: 9091
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
     links:
+      - zookeeper
+    depends_on:
       - zookeeper
     networks:
       - flink-network
@@ -89,10 +73,15 @@ services:
                 bootstrap.servers: "kafka:9092"
     ports:
       - 8088:8080
+    depends_on:
+      - zookeeper
+      - kafka
     links:
+      - zookeeper
       - kafka
     networks:
       - flink-network
+
 
   # Eclipse Mosquitto MQTT broker for message communication
   mosquitto:
@@ -100,6 +89,27 @@ services:
     container_name: mosquitto
     ports:
       - "1883:1883"
+    networks:
+      - flink-network
+
+  integrator:
+    build:
+      context: ./integrator
+      dockerfile: Dockerfile
+    container_name: integrator
+    environment:
+      - MQTT_BROKER=mosquitto:1883
+      - MQTT_TOPIC=iot-camera-frames
+      - KAFKA_BROKER=kafka:9092
+      - KAFKA_TOPIC=iot-camera-frames
+    depends_on:
+      - zookeeper
+      - kafka
+      - mosquitto
+    links:
+      - zookeeper
+      - kafka
+      - mosquitto
     networks:
       - flink-network
 
@@ -124,12 +134,13 @@ services:
     networks:
       - flink-network
 
-  # ScyllaDB NoSQL database for storing data
-  scylla:
-    image: scylladb/scylla:4.5.2
-    container_name: scylla-container
+  redis:
+    image: redis:latest
+    container_name: redis
     ports:
-      - "9042:9042"
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
     networks:
       - flink-network
 
@@ -137,12 +148,22 @@ services:
   auth_service:
     build:
       context: ./authentication
+      dockerfile: Dockerfile
     image: auth-service
     container_name: auth-service-container
     ports:
       - "5000:5000"
+    links:
+      - vault
+      - redis
     depends_on:
-      - scylla
+      - vault
+      - redis
+    environment:
+      - VAULT_ADDRESS=http://vault:8200
+      - VAULT_TOKEN=default
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     networks:
       - flink-network
 
