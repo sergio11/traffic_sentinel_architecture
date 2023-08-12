@@ -5,17 +5,16 @@ import requests
 import os
 import redis
 
-app = Flask(__name__)
-
-# Vault Configuration
-VAULT_ADDRESS = os.environ.get("VAULT_ADDRESS", "http://vault:8200")
-VAULT_TOKEN = os.environ.get("VAULT_TOKEN", "default_vault_token")
-
-# Redis Configuration
-REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
-REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
-redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0)
-
+def get_vault_token():
+    try:
+        token = redis_client.get("vault_root_token")
+        if token:
+            return token.decode("utf-8")
+        else:
+            raise Exception("Vault token not found in Redis")
+    except Exception as e:
+        raise Exception("Error retrieving Vault token from Redis")
+    
 def get_stored_password(mac_address):
     try:
         response = requests.get(
@@ -27,6 +26,16 @@ def get_stored_password(mac_address):
         return stored_password
     except Exception as e:
         raise Exception("Error retrieving stored password from Vault")
+
+app = Flask(__name__)
+
+# Redis Configuration
+REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
+REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
+redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0)
+# Vault Configuration
+VAULT_ADDRESS = os.environ.get("VAULT_ADDRESS", "http://vault:8200")
+VAULT_TOKEN = get_vault_token()
 
 @app.route('/get_challenge', methods=['POST'])
 def get_challenge():
@@ -67,6 +76,7 @@ def authenticate():
             return jsonify(message='Challenge not found'), 404
     except Exception as e:
         return jsonify(message=str(e)), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

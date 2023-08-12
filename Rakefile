@@ -61,7 +61,7 @@ namespace :flink do
 	desc "Initialize and Unseal"
 	task :initialize_and_unseal do
 		redis = Redis.new(host: 'localhost', port: 6379)
-		root_token = redis.get('root_token')
+		root_token = redis.get('vault_root_token')
 		unseal_keys = redis.lrange('unseal_keys', 0, -1)
 		vault_status = `docker exec -it vault vault status`
 		puts "Checking Vault status..."
@@ -79,8 +79,8 @@ namespace :flink do
 					redis.rpush('unseal_keys', key)
 				end
 			
-				root_token = vault_init_data['root_token']
-				redis.set('root_token', root_token)
+				root_token = vault_init_data['vault_root_token']
+				redis.set('vault_root_token', root_token)
 				puts "Root token stored in Redis: #{root_token}"
 			else
 				puts "Unsealing Vault..."
@@ -105,7 +105,7 @@ namespace :flink do
 	desc "Seal"
 	task :seal do
 		redis = Redis.new(host: 'localhost', port: 6379)
-		root_token = redis.get('root_token')
+		root_token = redis.get('vault_root_token')
 		
 		if root_token.nil?
 			puts "Root token not found in Redis. Please initialize and unseal Vault first."

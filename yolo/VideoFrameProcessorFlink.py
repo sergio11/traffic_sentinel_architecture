@@ -14,10 +14,20 @@ def decode_image(base64_string):
     image = cv2.imdecode(image_array, flags=cv2.IMREAD_COLOR)
     return image
 
-def process_frame(tracker, base64_frame):
+def process_frame(tracker, payload):
+    mac_address = payload['mac_address']
+    timestamp = payload['timestamp']
+    base64_frame = payload['frame_data']
+    
     frame = decode_image(base64_frame)
     processed_frame = tracker.process_frame(frame)
-    return processed_frame
+    
+    processed_payload = {
+        'mac_address': mac_address,
+        'timestamp': timestamp,
+        'processed_frame': processed_frame.tolist()  # Convert processed_frame to list for JSON serialization
+    }
+    return json.dumps(processed_payload)
 
 def main():
     env = StreamExecutionEnvironment.get_execution_environment()
@@ -40,7 +50,9 @@ def main():
             {
                 "type": "object",
                 "properties": {
-                    "frame": {"type": "string"}
+                    "mac_address": {"type": "string"},
+                    "timestamp": {"type": "integer"},
+                    "frame_data": {"type": "string"}
                 }
             }
             """
@@ -59,7 +71,7 @@ def main():
 
     # Definir la consulta para procesar los frames y llamar al método process_frame del VehicleDetectionTracker
     t_env.from_path("KafkaTable")\
-        .select("process_frame(frame) AS processed_frame")\
+        .select("process_frame(frame_data) AS processed_payload")\
         .to_append_stream(t_env.sink_to_kafka(
             "frame_processed",
             {"bootstrap.servers": "localhost:9092"},
@@ -71,4 +83,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
