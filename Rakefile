@@ -1,5 +1,6 @@
 require 'json'
 require 'redis'
+require 'vault'
 task default: %w[flink:start]
 
 namespace :flink do
@@ -79,7 +80,7 @@ namespace :flink do
 					redis.rpush('unseal_keys', key)
 				end
 			
-				root_token = vault_init_data['vault_root_token']
+				root_token = vault_init_data['root_token']
 				redis.set('vault_root_token', root_token)
 				puts "Root token stored in Redis: #{root_token}"
 			else
@@ -101,12 +102,11 @@ namespace :flink do
 			puts "Vault status is unknown."
 		end
 	end
-		
+
 	desc "Seal"
 	task :seal do
 		redis = Redis.new(host: 'localhost', port: 6379)
 		root_token = redis.get('vault_root_token')
-		
 		if root_token.nil?
 			puts "Root token not found in Redis. Please initialize and unseal Vault first."
 		else
@@ -122,6 +122,79 @@ namespace :flink do
 				puts "It is not possible sealing the vault"
 			end
 			
+		end
+	end
+
+	desc "Enable Secrets"
+	task :enable_secrets do
+		redis = Redis.new(host: 'localhost', port: 6379)
+		root_token = redis.get('vault_root_token')
+		vault_status = `docker exec -it vault vault status`
+		puts "Checking Vault status..."
+		puts vault_status
+		if  /Sealed\s+false/.match(vault_status) && /Initialized\s+true/.match(vault_status)
+			puts `docker exec -it vault vault login #{root_token}`
+			puts `docker exec -it vault vault secrets enable -path="fog-nodes-v1" kv`
+		else
+			puts "Operation not allowed"
+		end
+	end
+
+	desc "Preload Fog Nodes in Vault"
+	task :preload_fog_nodes do
+		# Redis Configuration
+		redis_client = Redis.new(host: "localhost", port: 6379, db: 0)
+		# Vault Configuration
+		VAULT_ADDRESS = 'http://localhost:8200'
+		# Retrieve the VAULT_TOKEN from Redis
+		VAULT_TOKEN = redis_client.get('vault_root_token')
+		Vault.configure do |config|
+		  config.address = VAULT_ADDRESS
+		  config.token = VAULT_TOKEN
+		end
+	
+		# Preload Fog nodes in Vault
+		fog_nodes = [
+		  { mac_address: '02:42:ac:11:00:02', password: '9#Fg5aP@qL1' }
+		  # Add more fog nodes as needed
+		]
+	
+		fog_nodes.each do |node|
+			begin
+				Vault.logical.write("fog-nodes-v1/#{node[:mac_address]}", data: node[:password])
+				puts "Fog node with MAC #{node[:mac_address]} with password: #{node[:password]} preloaded in Vault"
+			rescue Vault::HTTPClientError => e
+				puts "Error from Vault server: #{e.response.body}"
+			end
+		end
+	end
+
+	desc "Retrieve Fog Nodes from Vault"
+	task :retrieve_fog_nodes do
+
+		# Redis Configuration
+		redis_client = Redis.new(host: "localhost", port: 6379, db: 0)
+
+		# Vault Configuration
+		VAULT_ADDRESS = 'http://localhost:8200'
+		# Retrieve the VAULT_TOKEN from Redis
+		VAULT_TOKEN = redis_client.get('vault_root_token')
+		Vault.configure do |config|
+			config.address = VAULT_ADDRESS
+			config.token = VAULT_TOKEN
+		end
+
+		begin
+			response = Vault.logical.list('fog-nodes-v1')
+			fog_nodes = response.map(&:to_s)
+			fog_nodes.each do |mac_address|
+			  	response = Vault.logical.read("fog-nodes-v1/#{mac_address}")
+				puts "Fog Node with MAC Address #{mac_address}:"
+			  	puts "Password: #{response.data[:data]}"
+			  	puts "---"
+			end
+		rescue Vault::HTTPClientError => e
+			puts "Error from Vault server: #{e.response.body}"
 		end
 	end
 

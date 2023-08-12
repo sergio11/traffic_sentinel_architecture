@@ -1,5 +1,5 @@
 source 'https://rubygems.org'
 
-# Add other gems you need here
-
+gem 'json'
 gem 'redis'
+gem 'vault'
