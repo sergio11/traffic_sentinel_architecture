@@ -1,0 +1,2 @@
+redis==3.5.3
+paho-mqtt==1.5.1
