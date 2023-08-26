@@ -86,25 +86,22 @@ def get_node_password(mac_address):
     except Exception as e:
         print("Error retrieving node password from Vault:", e)
         return None
-
-mac_address = get_mac_address()
-
-if mac_address is None:
-    mac_address = str(uuid.uuid4())
-
-client = mqtt.Client()
-client.username_pw_set(username=mqtt_username, password=mqtt_password)
-client.tls_set(ca_certs=mqtt_ca_cert)
-
+    
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         print("Connected to MQTT broker")
     else:
         print("Connection error with code:", rc)
 
-client.on_connect = on_connect
-
-client.connect(mqtt_broker, mqtt_port, 60)
+def on_message(client, userdata, message):
+    try:
+        topic = message.topic
+        payload = message.payload.decode("utf-8")
+        if topic == "__keyevent@0__:expired" and mac_address in payload:
+            print("Received session expiration notification. Re-authenticating...")
+            authenticate(mac_address)
+    except Exception as e:
+        print("Error handling MQTT message:", e)
 
 def capture_and_send_frame(frame_path):
     try:
@@ -132,31 +129,50 @@ def frame_capture_loop():
         capture_and_send_frame(frame_path)
         time.sleep(1)
 
+def authenticate(mac_address):
+    try:
+        code_file_path = os.path.abspath(__file__)
+        code_hash = calculate_hash(code_file_path)
+        print("Hash value of this code:", code_hash)
+        challenge = get_challenge(mac_address)
+        if challenge:
+            node_password = get_node_password(mac_address)
+            if node_password:
+                client_response = hashlib.sha256((node_password + challenge + code_hash).encode()).hexdigest()
+                return authenticate_chap(mac_address, client_response)
+            else:
+                print("Error retrieving node password from Vault")
+        else:
+            print("Error getting challenge")
+    except Exception as e:
+        print("Error during reauthentication:", e)
+        return False
+
+client = mqtt.Client()
+client.username_pw_set(username=mqtt_username, password=mqtt_password)
+client.tls_set(ca_certs=mqtt_ca_cert)
+client.on_connect = on_connect
+client.on_message = on_message
+client.connect(mqtt_broker, mqtt_port, 60)
+client.subscribe("__keyevent@0__:expired")
+client.loop_start()
+
+
 def main():
 
-    code_file_path = os.path.abspath(__file__)
-    code_hash = calculate_hash(code_file_path)
+    mac_address = get_mac_address()
 
-    print("Hash value of this code:", code_hash)
+    if mac_address is None:
+        mac_address = str(uuid.uuid4())
 
     if not os.path.exists("output_directory"):
         os.makedirs("output_directory")
 
-    challenge = get_challenge(mac_address)
-
-    if challenge:
-        node_password = get_node_password(mac_address)
-        if node_password:
-            client_response = hashlib.sha256((node_password + challenge + code_hash).encode()).hexdigest()
-            if authenticate_chap(mac_address, client_response):
-                capture_thread = Thread(target=frame_capture_loop)
-                capture_thread.start()
-            else:
-                print("Unauthorized node")
-        else:
-            print("Error retrieving node password from Vault")
+    if authenticate(mac_address):
+        capture_thread = Thread(target=frame_capture_loop)
+        capture_thread.start()
     else:
-        print("Error getting challenge")
+        print(f"Error autenticate fog node with mac {mac_address}")
 
 if __name__ == "__main__":
     main()
