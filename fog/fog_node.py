@@ -22,6 +22,18 @@ redis_host = os.environ.get("REDIS_HOST", "redis")
 redis_port = int(os.environ.get("REDIS_PORT", 6379))
 redis_client = redis.Redis(host=redis_host, port=redis_port, db=0)
 
+def calculate_hash(file_path):
+    try:
+        with open(file_path, "rb") as f:
+            file_content = f.read()
+            hash_object = hashlib.sha256(file_content)
+            hash_hex = hash_object.hexdigest()
+            return hash_hex
+    except Exception as e:
+        print("Error calculating hash:", e)
+        return None
+
+
 def get_mac_address():
     try:
         output = subprocess.check_output(["ifconfig", "eth0"], stderr=subprocess.STDOUT, text=True)
@@ -121,6 +133,12 @@ def frame_capture_loop():
         time.sleep(1)
 
 def main():
+
+    code_file_path = os.path.abspath(__file__)
+    code_hash = calculate_hash(code_file_path)
+
+    print("Hash value of this code:", code_hash)
+
     if not os.path.exists("output_directory"):
         os.makedirs("output_directory")
 
@@ -129,7 +147,7 @@ def main():
     if challenge:
         node_password = get_node_password(mac_address)
         if node_password:
-            client_response = hashlib.sha256((node_password + challenge).encode()).hexdigest()
+            client_response = hashlib.sha256((node_password + challenge + code_hash).encode()).hexdigest()
             if authenticate_chap(mac_address, client_response):
                 capture_thread = Thread(target=frame_capture_loop)
                 capture_thread.start()
