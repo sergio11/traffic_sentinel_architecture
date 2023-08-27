@@ -7,9 +7,11 @@ import requests
 import hashlib
 import uuid
 import re
+import requests
 from threading import Thread
 import redis
 
+provisioning_service_url = os.environ.get("PROVISIONING_SERVICE_URL")
 mqtt_broker = os.environ.get("MQTT_BROKER")
 mqtt_port = int(os.environ.get("MQTT_PORT", 1883))
 mqtt_topic = os.environ.get("MQTT_TOPIC", "frames")
@@ -103,13 +105,21 @@ def on_message(client, userdata, message):
     except Exception as e:
         print("Error handling MQTT message:", e)
 
-def capture_and_send_frame(frame_path):
+def capture_and_send_frame(frame_path, timestamp, camera_url, mac_address):
     try:
-        subprocess.run(["ffmpeg", "-i", "camera_url", "-vframes", "1", frame_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        capture_command = [
+            "ffmpeg",
+            "-rtsp_transport", "tcp",  # Usar TCP para la transmisión RTSP
+            "-i", camera_url,
+            "-vf", "fps=1",  # Capturar un frame por segundo
+            "-frames:v", "1",  # Capturar solo un frame
+            "-f", "image2",
+            frame_path
+        ]
+        subprocess.run(capture_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         with open(frame_path, "rb") as frame_file:
             frame_data = frame_file.read()
             base64_frame = base64.b64encode(frame_data).decode('utf-8')
-            timestamp = int(time.time())
             payload = {
                 "mac_address": mac_address,
                 "timestamp": timestamp,
@@ -121,12 +131,12 @@ def capture_and_send_frame(frame_path):
     except Exception as e:
         print("Error:", e)
 
-def frame_capture_loop():
+def frame_capture_loop(camera_url, mac_address):
     while True:
         timestamp = str(int(time.time()))
         frame_filename = f"frame_{timestamp}.jpg"
         frame_path = os.path.join("output_directory", frame_filename)
-        capture_and_send_frame(frame_path)
+        capture_and_send_frame(frame_path, timestamp, camera_url)
         time.sleep(1)
 
 def authenticate(mac_address):
@@ -169,8 +179,20 @@ def main():
         os.makedirs("output_directory")
 
     if authenticate(mac_address):
-        capture_thread = Thread(target=frame_capture_loop)
-        capture_thread.start()
+        # Realizar una llamada al servicio de aprovisionamiento para obtener la información de la cámara
+        try:
+            response = requests.get(f"{provisioning_service_url}?mac_address={mac_address}")
+            if response.status_code == 200:
+                provisioning_data = response.json()
+                camera_url = provisioning_data.get("camera_url")
+                camera_username = provisioning_data.get("camera_username")
+                camera_password = provisioning_data.get("camera_password")
+                capture_thread = Thread(target=frame_capture_loop, args=(camera_url, camera_username, camera_password))
+                capture_thread.start()          
+            else:
+                print("Error retrieving provisioning data")
+        except Exception as e:
+            print("Error during provisioning:", e)
     else:
         print(f"Error autenticate fog node with mac {mac_address}")
 
