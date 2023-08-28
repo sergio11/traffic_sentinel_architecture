@@ -12,18 +12,22 @@ from threading import Thread
 import redis
 
 # Load configuration from environment variables
-provisioning_service_url = os.environ.get("PROVISIONING_SERVICE_URL")
-mqtt_broker = os.environ.get("MQTT_BROKER")
-mqtt_port = int(os.environ.get("MQTT_PORT", 1883))
-mqtt_topic = os.environ.get("MQTT_TOPIC", "frames")
-mqtt_username = os.environ.get("MQTT_USERNAME")
-mqtt_password = os.environ.get("MQTT_PASSWORD")
-mqtt_ca_cert = os.environ.get("MQTT_CA_CERT")
-auth_service_url = os.environ.get("AUTH_SERVICE_URL")
-vault_address = os.environ.get("VAULT_ADDRESS", "http://vault:8200")
-redis_host = os.environ.get("REDIS_HOST", "redis")
-redis_port = int(os.environ.get("REDIS_PORT", 6379))
-redis_client = redis.Redis(host=redis_host, port=redis_port, db=0)
+PROVISIONING_SERVICE_URL = os.environ.get("PROVISIONING_SERVICE_URL")
+MQTT_BROKER = os.environ.get("MQTT_BROKER")
+MQTT_PORT = int(os.environ.get("MQTT_PORT", 1883))
+MQTT_TOPIC = os.environ.get("MQTT_TOPIC", "frames")
+MQTT_BROKER_USERNAME = os.environ.get("MQTT_BROKER_USERNAME")
+MQTT_BROKER_PASSWORD = os.environ.get("MQTT_BROKER_PASSWORD")
+MQTT_REAUTH_TOPIC = os.environ.get("MQTT_REAUTH_TOPIC", "request-auth")
+AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL")
+VAULT_ADDRESS = os.environ.get("VAULT_ADDRESS", "http://vault:8200")
+REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
+REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
+FRAMES_OUTPUT_DIRECTORY = "frames_captured"
+
+# Init redis connection
+redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0)
+mac_address = ""
 
 # Function to calculate the SHA-256 hash of a file
 def calculate_hash(file_path):
@@ -74,7 +78,7 @@ def get_challenge(mac_address):
         str: Authentication challenge.
     """
     try:
-        response = requests.post(f"{auth_service_url}/get_challenge", json={"mac_address": mac_address})
+        response = requests.post(f"{AUTH_SERVICE_URL}/get_challenge", json={"mac_address": mac_address})
         if response.status_code == 200:
             data = response.json()
             return data.get("challenge")
@@ -113,7 +117,7 @@ def authenticate_chap(mac_address, client_response):
         bool: True if authentication is successful, False otherwise.
     """
     try:
-        response = requests.post(f"{auth_service_url}/authenticate", json={"mac_address": mac_address, "client_response": client_response})
+        response = requests.post(f"{AUTH_SERVICE_URL}/authenticate", json={"mac_address": mac_address, "client_response": client_response})
         if response.status_code == 200:
             return True
         return False
@@ -134,7 +138,7 @@ def get_node_password(mac_address):
     """
     try:
         response = requests.get(
-            f"{vault_address}/v1/secret/data/users/{mac_address}",
+            f"{VAULT_ADDRESS}/v1/secret/data/users/{mac_address}",
             headers={"X-Vault-Token": get_vault_token()}
         )
         response_json = response.json()
@@ -209,7 +213,7 @@ def capture_and_send_frame(frame_path, timestamp, camera_url, mac_address):
                 "timestamp": timestamp,
                 "frame_data": base64_frame
             }
-            client.publish(mqtt_topic, payload=str(payload), qos=0)
+            client.publish(MQTT_TOPIC, payload=str(payload), qos=0)
             print("Frame sent to MQTT")
         os.remove(frame_path)
     except Exception as e:
@@ -262,12 +266,11 @@ def authenticate(mac_address):
 
 # Initialize the MQTT client and set up callbacks
 client = mqtt.Client()
-client.username_pw_set(username=mqtt_username, password=mqtt_password)
-client.tls_set(ca_certs=mqtt_ca_cert)
+client.username_pw_set(username=MQTT_BROKER_USERNAME, password=MQTT_BROKER_PASSWORD)
 client.on_connect = on_connect
 client.on_message = on_message
-client.connect(mqtt_broker, mqtt_port, 60)
-client.subscribe("__keyevent@0__:expired")
+client.connect(MQTT_BROKER, MQTT_PORT, 60)
+client.subscribe(MQTT_REAUTH_TOPIC)
 client.loop_start()
 
 # Main function
@@ -275,17 +278,18 @@ def main():
     """
     Main function.
     """
+    global mac_address
     mac_address = get_mac_address()
 
     if mac_address is None:
         mac_address = str(uuid.uuid4())
 
-    if not os.path.exists("output_directory"):
-        os.makedirs("output_directory")
+    if not os.path.exists(FRAMES_OUTPUT_DIRECTORY):
+        os.makedirs(FRAMES_OUTPUT_DIRECTORY)
 
     if authenticate(mac_address):
         try:
-            response = requests.get(f"{provisioning_service_url}?mac_address={mac_address}")
+            response = requests.get(f"{PROVISIONING_SERVICE_URL}?mac_address={mac_address}")
             if response.status_code == 200:
                 provisioning_data = response.json()
                 camera_url = provisioning_data.get("camera_url")

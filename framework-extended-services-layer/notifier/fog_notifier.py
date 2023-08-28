@@ -13,7 +13,7 @@ the corresponding Fog node.
 Environment Variables:
 - REDIS_HOST: Redis server hostname (default: localhost)
 - REDIS_PORT: Redis server port (default: 6379)
-- MQTT_BROKER: MQTT broker hostname (default: mqtt)
+- MQTT_BROKER: MQTT broker hostname (default: mqtt:1883)
 - MQTT_PORT: MQTT broker port (default: 1883)
 """
 
