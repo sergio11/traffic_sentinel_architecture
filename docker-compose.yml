@@ -26,7 +26,7 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
     networks:
-      - flink-network
+      - smart-highway-net 
 
   # Apache Kafka is an open-source distributed event streaming platform used 
   # by thousands of companies for high-performance data pipelines, 
@@ -58,7 +58,7 @@ services:
     depends_on:
       - zookeeper
     networks:
-      - flink-network
+      - smart-highway-net 
 
   # Manage & view data inside your Apache Kafka ® cluster
   akhq:
@@ -80,38 +80,22 @@ services:
       - zookeeper
       - kafka
     networks:
-      - flink-network
+      - smart-highway-net 
 
 
   # Eclipse Mosquitto MQTT broker for message communication
   mosquitto:
     image: eclipse-mosquitto:2.0.14
     container_name: mosquitto
+    env_file:
+      - ./.env
+    environment:
+      - MOSQUITTO_USERNAME=${MOSQUITTO_USERNAME}
+      - MOSQUITTO_PASSWORD=${MOSQUITTO_PASSWORD}
     ports:
       - "1883:1883"
     networks:
-      - flink-network
-
-  integrator:
-    build:
-      context: ./integrator
-      dockerfile: Dockerfile
-    container_name: integrator
-    environment:
-      - MQTT_BROKER=mosquitto:1883
-      - MQTT_TOPIC=iot-camera-frames
-      - KAFKA_BROKER=kafka:9092
-      - KAFKA_TOPIC=iot-camera-frames
-    depends_on:
-      - zookeeper
-      - kafka
-      - mosquitto
-    links:
-      - zookeeper
-      - kafka
-      - mosquitto
-    networks:
-      - flink-network
+      - smart-highway-net
 
   # HashiCorp Vault for managing secrets and protecting sensitive data
   vault:
@@ -132,7 +116,7 @@ services:
       - IPC_LOCK
     command: vault server -config=/vault/config/vault.json
     networks:
-      - flink-network
+      - smart-highway-net 
 
   redis:
     image: redis:latest
@@ -142,7 +126,7 @@ services:
     volumes:
       - redis-data:/data
     networks:
-      - flink-network
+      - smart-highway-net 
 
   # Flask-based authentication service for authorization and authentication
   auth_service:
@@ -151,6 +135,13 @@ services:
       dockerfile: Dockerfile
     image: auth-service
     container_name: auth-service-container
+    env_file:
+      - ./.env
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - VAULT_ADDRESS=${VAULT_ADDRESS}
+      - VAULT_PORT=${VAULT_PORT}
     ports:
       - "5000:5000"
     links:
@@ -159,14 +150,34 @@ services:
     depends_on:
       - vault
       - redis
-    environment:
-      - VAULT_ADDRESS=http://vault:8200
-      - VAULT_TOKEN=default
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
     networks:
-      - flink-network
+      - smart-highway-net 
+
+  integrator:
+    build:
+      context: ./integrator
+      dockerfile: Dockerfile
+    container_name: integrator
+    env_file:
+      - ./.env
+    environment:
+      - MQTT_BROKER_USERNAME=${MQTT_BROKER_USERNAME}
+      - MQTT_BROKER_PASSWORD=${MQTT_BROKER_PASSWORD}
+      - MQTT_BROKER=${MQTT_BROKER}
+      - MQTT_TOPIC=${MQTT_TOPIC}
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - KAFKA_TOPIC=${KAFKA_TOPIC}
+    depends_on:
+      - zookeeper
+      - kafka
+      - mosquitto
+    links:
+      - zookeeper
+      - kafka
+      - mosquitto
+    networks:
+      - smart-highway-net 
 
 networks:
-  flink-network:
+  smart-highway-net:
     driver: bridge

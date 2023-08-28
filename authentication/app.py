@@ -66,7 +66,6 @@ def get_challenge():
         
         # Log the challenge and generated UUID
         print(f"Challenge generated for MAC {mac_address}: {challenge}")
-        print(f"Generated UUID: {challenge_data['uuid']}")
 
         return jsonify(challenge=challenge), 200
     except Exception as e:

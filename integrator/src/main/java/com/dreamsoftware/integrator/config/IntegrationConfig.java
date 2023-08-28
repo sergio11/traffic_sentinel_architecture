@@ -3,13 +3,16 @@ package com.dreamsoftware.integrator.config;
 import jakarta.annotation.PostConstruct;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.integration.annotation.IntegrationComponentScan;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.config.EnableIntegration;
 import org.springframework.integration.core.GenericHandler;
+import org.springframework.integration.core.GenericSelector;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.endpoint.MessageProducerSupport;
 import org.springframework.integration.kafka.dsl.Kafka;
@@ -23,6 +26,7 @@ import org.springframework.messaging.MessageChannel;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @Configuration
 @EnableIntegration
@@ -40,6 +44,9 @@ public class IntegrationConfig {
 
     @Value("${KAFKA_TOPIC}")
     private String kafkaTopic;
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
 
     @PostConstruct
@@ -73,9 +80,12 @@ public class IntegrationConfig {
     @Bean
     public GenericHandler<Message<?>> messageHandler() {
         return (message, headers) -> {
-            // Process the MQTT message here
-            System.out.println("messageHandler MQTT message: " + message);
-            return message;
+            String macAddress = headers.get("mqtt_topic", String.class);
+            if (hasSession(macAddress)) {
+                // Process the MQTT message here
+                return message;
+            }
+            return null; // Discard messages without a session
         };
     }
 
@@ -84,6 +94,7 @@ public class IntegrationConfig {
         return IntegrationFlow.from(mqttInbound())
                 .channel(mqttInputChannel())
                 .handle(messageHandler())
+                .filter((GenericSelector<Message<?>>) Objects::nonNull)
                 .channel(kafkaOutboundChannel())
                 .handle(Kafka.outboundChannelAdapter(kafkaProducerFactory())
                         .messageKey(m -> m.getHeaders().get("mqtt_topic"))
@@ -98,5 +109,9 @@ public class IntegrationConfig {
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         return new DefaultKafkaProducerFactory<>(configProps);
+    }
+
+    private boolean hasSession(String macAddress) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey(macAddress + "_session"));
     }
 }
