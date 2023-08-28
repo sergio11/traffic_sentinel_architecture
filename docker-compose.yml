@@ -10,8 +10,21 @@ volumes:
     driver: local
   redis-data:
     driver: local
+  mongo_data:
+    driver: local
 
 services:
+
+  # MongoDB container
+  mongo:
+    container_name: mongo
+    image: mongo:4
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - smart-highway-net 
 
   # Apache ZooKeeper is an effort to develop and maintain an open-source server which enables highly reliable distributed coordination.
   zookeeper:
@@ -133,7 +146,6 @@ services:
     build:
       context: ./authentication
       dockerfile: Dockerfile
-    image: auth-service
     container_name: auth-service-container
     env_file:
       - ./.env
@@ -149,6 +161,52 @@ services:
       - redis
     depends_on:
       - vault
+      - redis
+    networks:
+      - smart-highway-net 
+
+
+  notifier:
+    build:
+      context: ./notifier
+      dockerfile: Dockerfile
+    container_name: notifier-service
+    env_file:
+      - ./.env
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_EXPIRATION_CHANNEL=${REDIS_EXPIRATION_CHANNEL}
+      - MQTT_BROKER=${MQTT_BROKER}
+      - MQTT_PORT=${MQTT_PORT}
+      - MQTT_REAUTH_TOPIC=${MQTT_REAUTH_TOPIC}
+    links:
+      - mosquitto
+      - redis
+    depends_on:
+      - mosquitto
+      - redis
+    networks:
+      - smart-highway-net 
+
+
+  provision:
+    build:
+      context: ./provision
+      dockerfile: Dockerfile
+    container_name: provision-service
+    env_file:
+      - ./.env
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - MONGO_HOST=${MONGO_HOST}
+      - MONGO_HOST=${MONGO_HOST}
+    links:
+      - mosquitto
+      - redis
+    depends_on:
+      - mosquitto
       - redis
     networks:
       - smart-highway-net 
