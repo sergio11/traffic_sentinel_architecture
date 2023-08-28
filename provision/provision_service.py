@@ -6,15 +6,14 @@ import os
 app = Flask(__name__)
 
 # Redis Configuration
-redis_host = os.environ.get("REDIS_HOST", "localhost")
-redis_port = int(os.environ.get("REDIS_PORT", 6379))
-redis_db = int(os.environ.get("REDIS_DB", 0))
-redis_client = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
+REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
+redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
 
 # MongoDB Configuration
-mongo_host = os.environ.get("MONGO_HOST", "localhost")
-mongo_port = int(os.environ.get("MONGO_PORT", 27017))
-mongo_client = MongoClient(f'mongodb://{mongo_host}:{mongo_port}/')
+MONGO_HOST = os.environ.get("MONGO_HOST", "localhost")
+MONGO_PORT = int(os.environ.get("MONGO_PORT", 27017))
+mongo_client = MongoClient(f'mongodb://{MONGO_HOST}:{MONGO_PORT}/')
 db = mongo_client['camera_db']
 
 @app.route('/provision', methods=['GET'])
