@@ -1,7 +1,7 @@
 require 'json'
 require 'redis'
 require 'vault'
-task default: %w[SmartHighwayNet:start]
+task default: %w[SmartHighwayNet:status]
 
 namespace :SmartHighwayNet do
 
@@ -35,14 +35,16 @@ namespace :SmartHighwayNet do
 		end
 	end
 
-	desc "Check Platform Deployment File"
-	task :check_deployment_file do
-		puts "Check Platform Deployment File ..."
-		raise "Deployment file not found, please check availability" unless File.file?("./docker-compose.yml")
-		puts "Platform Deployment File OK!"
-	end
+	namespace :ServiceFoundationLayer do
+		desc "Tasks related to the Service Foundation Layer"
+		# Define tasks related to the Service Foundation Layer
 
-	namespace :configuration do 
+		desc "Check Service Foundation layer Deployment File"
+		task :check_deployment_file do
+			puts "Check Platform Deployment File ..."
+			raise "Deployment file not found, please check availability" unless File.file?("./services-foundation-layer/docker-compose.yml")
+			puts "Platform Deployment File OK!"
+		end
 
 		desc "Initialize and Unseal"
 		task :initialize_and_unseal do
@@ -68,17 +70,16 @@ namespace :SmartHighwayNet do
 					root_token = vault_init_data['root_token']
 					redis.set('vault_root_token', root_token)
 					puts "Root token stored in Redis: #{root_token}"
-				else
-					puts "Unsealing Vault..."
-					unseal_keys.each do |key|
+				end
+				puts "Unsealing Vault..."
+				unseal_keys.each do |key|
 					puts `docker exec -it vault vault operator unseal #{key}`
-					end
-					puts "Vault unsealed."
-					if root_token.nil?
-						puts "No root token found in Redis."
-					else
-						puts "Root token from Redis: #{root_token}"
-					end
+				end
+				puts "Vault unsealed."
+				if root_token.nil?
+					puts "No root token found in Redis."
+				else
+					puts "Root token from Redis: #{root_token}"
 				end
 			elsif  /Sealed\s+false/.match(vault_status)
 				puts "Vault is already initialized and unsealed."
@@ -115,7 +116,7 @@ namespace :SmartHighwayNet do
 			redis = Redis.new(host: 'localhost', port: 6379)
 			root_token = redis.get('vault_root_token')
 			vault_status = `docker exec -it vault vault status`
-			puts "Checking Vault status..."
+			puts "Start enabling secrets - checking Vault status..."
 			puts vault_status
 			if  /Sealed\s+false/.match(vault_status) && /Initialized\s+true/.match(vault_status)
 				puts `docker exec -it vault vault login #{root_token}`
@@ -183,32 +184,88 @@ namespace :SmartHighwayNet do
 			end
 		end
 
-		# New task that combines the initialization, enabling secrets, and preload tasks
-		desc "Finalize Deployment"
-		task :finalize_deploy => [:initialize_and_unseal, :enable_secrets, :preload_fog_nodes] do
-		  puts "Final deployment steps completed."
+		desc "Start Service Foundation layer Containers"
+		task :start => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Start Service Foundation layer containers"
+			puts `docker-compose -f ./services-foundation-layer/docker-compose.yml up -d 2>&1`
+			puts "Waiting for Service Foundation layer start ..."
+			sleep(60)
 		end
 
+		desc "Stop Service Foundation layer Containers"
+		task :stop => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Stop Service Foundation layer Containers"
+			puts `docker-compose -f ./services-foundation-layer/docker-compose.yml stop 2>&1`
+		end
+
+		# New task that combines the initialization, enabling secrets, and preload tasks
+		desc "Configure Service Foundation layer"
+		task :configure => [:initialize_and_unseal, :enable_secrets, :preload_fog_nodes] do
+		  puts "Service Foundation layer configured."
+		end
+
+		desc "Deploy Service Foundation layer Containers"
+		task :deploy => [ :check_docker_task, :login, :check_deployment_file, :cleaning_environment_task, :start, :configure  ] do
+			puts "Deploy Service Foundation layer Containers"
+		end
 	end
+	  
+	namespace :FrameworkExtendedServiceLayer do
+		desc "Tasks related to the Framework-Extended Service Layer"
+		# Define tasks related to the Framework-Extended Service Layer
+		
+		desc "Check Framework Extended service layer Deployment File"
+		task :check_deployment_file do
+			puts "Check Platform Deployment File ..."
+			raise "Deployment file not found, please check availability" unless File.file?("./framework-extended-services-layer/docker-compose.yml")
+			puts "Platform Deployment File OK!"
+		end
 
+		desc "Start framework extended service layer containers"
+		task :start => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Start framework extended service layer containers"
+			puts `docker-compose -f ./framework-extended-services-layer/docker-compose.yml up -d 2>&1`
+		end
 
-	desc "Start Platform Containers"
-	task :start => [ :check_docker_task, :login, :check_deployment_file  ] do
-		puts "Start docker containers"
-        puts `docker-compose up -d`
-		puts "Waiting for platform start ..."
-        sleep(60)
+		desc "Stop framework extended service layer container"
+		task :stop => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Stop framework extended service layer container"
+			puts `docker-compose -f ./framework-extended-services-layer/docker-compose.yml stop 2>&1`
+		end
+
+		desc "Deploy framework extended service layer container"
+		task :deploy => [ :check_docker_task, :login, :check_deployment_file, :cleaning_environment_task, :start  ] do
+			puts "Deploy framework extended service layer container"
+		end
 	end
+	  
+	namespace :FogStreamingLayer do
+		desc "Tasks related to the Fog Streaming Layer"
+		# Define tasks related to the Fog Streaming Layer
 
-	desc "Stop Platform Containers"
-	task :stop => [ :check_docker_task, :login, :check_deployment_file  ] do
-		puts "Stop Platform Containers"
-		puts `docker-compose stop 2>&1`
-	end
+		desc "Check Fog streaming layer Deployment File"
+		task :check_deployment_file do
+			puts "Check Platform Deployment File ..."
+			raise "Deployment file not found, please check availability" unless File.file?("./fog-stream-processing-layer/docker-compose.yml")
+			puts "Platform Deployment File OK!"
+		end
 
-	desc "Deploy Platform Containers"
-	task :deploy => [ :check_docker_task, :login, :check_deployment_file, :cleaning_environment_task, :start, "SmartHighwayNet:configuration:finalize_deploy"  ] do
-		puts "Deploy platform containers"
+		desc "Start fog streaming layer containers"
+		task :start => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Start fog streaming layer containers"
+			puts `docker-compose -f ./fog-stream-processing-layer/docker-compose.yml up -d 2>&1`
+		end
+
+		desc "Stop fog streaming layer container"
+		task :stop => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Stop fog streaming layer container"
+			puts `docker-compose -f ./fog-stream-processing-layer/docker-compose.yml stop 2>&1`
+		end
+
+		desc "Deploy fog streaming layer container"
+		task :deploy => [ :check_docker_task, :login, :check_deployment_file, :cleaning_environment_task, :start  ] do
+			puts "Deploy fog streaming layer container"
+		end
 	end
 
 	## Utils Functions
