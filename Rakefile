@@ -213,6 +213,24 @@ namespace :SmartHighwayNet do
 	namespace :FrameworkExtendedServiceLayer do
 		desc "Tasks related to the Framework-Extended Service Layer"
 		# Define tasks related to the Framework-Extended Service Layer
+
+		desc "Build Framework Extended service layer"
+		task :build do
+			puts "Build Framework Extended service layer ..."
+			image_info = [
+				{ name: "ssanchez11/smart_highway_net_auth_service:0.0.1", directory: "./framework-extended-services-layer/auth" },
+				{ name: "ssanchez11/smart_highway_net_provision_service:0.0.1", directory: "./framework-extended-services-layer/provision" },
+				{ name: "ssanchez11/smart_highway_net_integrator_service:0.0.1", directory: "./framework-extended-services-layer/integrator" },
+				{ name: "ssanchez11/smart_highway_net_notifier_service:0.0.1", directory: "./framework-extended-services-layer/notifier" }
+			]
+			image_info.each do |info|
+				puts "Build Docker Image #{info[:name]}"
+				puts `docker build -t #{info[:name]} -f #{info[:directory]}/Dockerfile #{info[:directory]}`
+				puts "Docker image #{info[:name]} has been created! trying to upload it!"
+				puts `docker push #{info[:name]}`
+			end
+			puts `docker images`
+		end
 		
 		desc "Check Framework Extended service layer Deployment File"
 		task :check_deployment_file do
