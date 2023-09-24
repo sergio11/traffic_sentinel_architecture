@@ -1,37 +1,24 @@
 version: "3"
 
-
 services:
 
   # Flask-based authentication service for authorization and authentication
   auth_service:
-    build:
-      context: ./authentication
-      dockerfile: Dockerfile
-    container_name: auth-service-container
+    image: ssanchez11/smart_highway_net_auth_service:0.0.1
+    container_name: auth-service
     env_file:
       - ./.env
     environment:
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
       - VAULT_ADDRESS=${VAULT_ADDRESS}
-      - VAULT_PORT=${VAULT_PORT}
     ports:
       - "5000:5000"
-    links:
-      - vault
-      - redis
-    depends_on:
-      - vault
-      - redis
     networks:
-      - smart-highway-net 
-
+      - smart-highway-net
 
   notifier:
-    build:
-      context: ./notifier
-      dockerfile: Dockerfile
+    image: ssanchez11/smart_highway_net_notifier_service:0.0.1
     container_name: notifier-service
     env_file:
       - ./.env
@@ -42,19 +29,11 @@ services:
       - MQTT_BROKER=${MQTT_BROKER}
       - MQTT_PORT=${MQTT_PORT}
       - MQTT_REAUTH_TOPIC=${MQTT_REAUTH_TOPIC}
-    links:
-      - mosquitto
-      - redis
-    depends_on:
-      - mosquitto
-      - redis
     networks:
-      - smart-highway-net 
+      - smart-highway-net
 
   provision:
-    build:
-      context: ./provision
-      dockerfile: Dockerfile
+    image: ssanchez11/smart_highway_net_provision_service:0.0.1
     container_name: provision-service
     env_file:
       - ./.env
@@ -63,20 +42,12 @@ services:
       - REDIS_PORT=${REDIS_PORT}
       - MONGO_HOST=${MONGO_HOST}
       - MONGO_PORT=${MONGO_PORT}
-    links:
-      - mosquitto
-      - redis
-    depends_on:
-      - mosquitto
-      - redis
     networks:
-      - smart-highway-net 
+      - smart-highway-net
 
   integrator:
-    build:
-      context: ./integrator
-      dockerfile: Dockerfile
-    container_name: integrator
+    image: ssanchez11/smart_highway_net_integrator_service:0.0.1
+    container_name: integrator-service
     env_file:
       - ./.env
     environment:
@@ -86,16 +57,8 @@ services:
       - MQTT_TOPIC=${MQTT_TOPIC}
       - KAFKA_BROKER=${KAFKA_BROKER}
       - KAFKA_TOPIC=${KAFKA_TOPIC}
-    depends_on:
-      - zookeeper
-      - kafka
-      - mosquitto
-    links:
-      - zookeeper
-      - kafka
-      - mosquitto
     networks:
-      - smart-highway-net 
+      - smart-highway-net
 
 networks:
   smart-highway-net:
