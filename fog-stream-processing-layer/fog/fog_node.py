@@ -9,7 +9,6 @@ import uuid
 import re
 import requests
 from threading import Thread
-import redis
 
 # Load configuration from environment variables
 PROVISIONING_SERVICE_URL = os.environ.get("PROVISIONING_SERVICE_URL")
@@ -20,13 +19,8 @@ MQTT_BROKER_USERNAME = os.environ.get("MQTT_BROKER_USERNAME")
 MQTT_BROKER_PASSWORD = os.environ.get("MQTT_BROKER_PASSWORD")
 MQTT_REAUTH_TOPIC = os.environ.get("MQTT_REAUTH_TOPIC", "request-auth")
 AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL")
-VAULT_ADDRESS = os.environ.get("VAULT_ADDRESS", "http://vault:8200")
-REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
-REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
 FRAMES_OUTPUT_DIRECTORY = "frames_captured"
 
-# Init redis connection
-redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0)
 mac_address = ""
 
 # Function to calculate the SHA-256 hash of a file
@@ -87,22 +81,6 @@ def get_challenge(mac_address):
         print("Error getting challenge:", e)
         return None
 
-# Function to retrieve the Vault token from Redis
-def get_vault_token():
-    """
-    Retrieve the Vault token from Redis.
-
-    Returns:
-        str: Vault token.
-    """
-    try:
-        token = redis_client.get("vault_root_token")
-        if token:
-            return token.decode("utf-8")
-        else:
-            raise Exception("Vault token not found in Redis")
-    except Exception as e:
-        raise Exception("Error retrieving Vault token from Redis")
 
 # Function to authenticate using CHAP (Challenge-Handshake Authentication Protocol)
 def authenticate_chap(mac_address, client_response):
@@ -124,29 +102,6 @@ def authenticate_chap(mac_address, client_response):
     except Exception as e:
         print("Error during authentication:", e)
         return False
-
-# Function to retrieve the node password from Vault
-def get_node_password(mac_address):
-    """
-    Retrieve the node password from Vault.
-
-    Args:
-        mac_address (str): MAC address of the device.
-
-    Returns:
-        str: Node password.
-    """
-    try:
-        response = requests.get(
-            f"{VAULT_ADDRESS}/v1/secret/data/users/{mac_address}",
-            headers={"X-Vault-Token": get_vault_token()}
-        )
-        response_json = response.json()
-        node_password = response_json["data"]["password"]
-        return node_password
-    except Exception as e:
-        print("Error retrieving node password from Vault:", e)
-        return None
 
 # Callback function when the MQTT client connects to the broker
 def on_connect(client, userdata, flags, rc):
@@ -252,18 +207,23 @@ def authenticate(mac_address):
         print("Hash value of this code:", code_hash)
         challenge = get_challenge(mac_address)
         if challenge:
-            node_password = get_node_password(mac_address)
-            if node_password:
-                client_response = hashlib.sha256((node_password + challenge + code_hash).encode()).hexdigest()
-                return authenticate_chap(mac_address, client_response)
+            password_response = requests.get(f"{PROVISIONING_SERVICE_URL}/get-fog-password?mac_address={mac_address}")
+            if password_response.status_code == 200:
+                password_data = password_response.json()
+                node_password = password_data.get("fog_password")
+                if node_password:
+                    client_response = hashlib.sha256((node_password + challenge + code_hash).encode()).hexdigest()
+                    return authenticate_chap(mac_address, client_response)
+                else:
+                    print("Error retrieving node password from provisioning service")
             else:
-                print("Error retrieving node password from Vault")
+                print("Error getting node password from provisioning service")
         else:
             print("Error getting challenge")
     except Exception as e:
         print("Error during reauthentication:", e)
         return False
-
+    
 # Initialize the MQTT client and set up callbacks
 client = mqtt.Client()
 client.username_pw_set(username=MQTT_BROKER_USERNAME, password=MQTT_BROKER_PASSWORD)

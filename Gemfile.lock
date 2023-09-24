@@ -1,17 +1,20 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    connection_pool (2.4.1)
-    redis (5.0.7)
-      redis-client (>= 0.9.0)
-    redis-client (0.15.0)
-      connection_pool
+    aws-eventstream (1.2.0)
+    aws-sigv4 (1.6.0)
+      aws-eventstream (~> 1, >= 1.0.2)
+    json (2.6.3)
+    vault (0.17.0)
+      aws-sigv4
 
 PLATFORMS
+  x64-mingw-ucrt
   x64-mingw32
 
 DEPENDENCIES
-  redis
+  json
+  vault
 
 BUNDLED WITH
-   1.17.2
+   2.4.10
