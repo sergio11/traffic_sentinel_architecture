@@ -134,9 +134,12 @@ services:
   # Eclipse Mosquitto MQTT broker for message communication
   mosquitto:
     image: eclipse-mosquitto:2.0.14
+    restart: on-failure
     container_name: mosquitto
     env_file:
       - ./.env
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
     environment:
       - MOSQUITTO_USERNAME=${MQTT_BROKER_USERNAME}
       - MOSQUITTO_PASSWORD=${MQTT_BROKER_PASSWORD}

@@ -42,6 +42,8 @@ services:
       - REDIS_PORT=${REDIS_PORT}
       - MONGO_HOST=${MONGO_HOST}
       - MONGO_PORT=${MONGO_PORT}
+    ports:
+      - "5001:5001"
     networks:
       - smart-highway-net
 

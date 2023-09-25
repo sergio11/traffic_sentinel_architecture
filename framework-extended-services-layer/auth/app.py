@@ -5,40 +5,7 @@ import requests
 import os
 import redis
 
-def get_vault_token():
-    try:
-        token = redis_client.get("vault_root_token")
-        if token:
-            return token.decode("utf-8")
-        else:
-            raise Exception("Vault token not found in Redis")
-    except Exception as e:
-        raise Exception("Error retrieving Vault token from Redis")
-    
-def get_stored_password(mac_address):
-    try:
-        response = requests.get(
-            f"{VAULT_ADDRESS}/v1/secret/data/users/{mac_address}",
-            headers={"X-Vault-Token": VAULT_TOKEN}
-        )
-        response_json = response.json()
-        stored_password = response_json["data"]["password"]
-        return stored_password
-    except Exception as e:
-        raise Exception("Error retrieving stored password from Vault")
 
-def get_code_hash(mac_address):
-    try:
-        response = requests.get(
-            f"{VAULT_ADDRESS}/v1/secret/data/fog_nodes/{mac_address}",
-            headers={"X-Vault-Token": VAULT_TOKEN}
-        )
-        response_json = response.json()
-        code_hash = response_json["data"]["code_hash"]
-        return code_hash
-    except Exception as e:
-        raise Exception("Error retrieving code hash from Vault")
-    
 app = Flask(__name__)
 
 # Redis Configuration
@@ -47,16 +14,15 @@ REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
 redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0)
 # Vault Configuration
 VAULT_ADDRESS = os.environ.get("VAULT_ADDRESS", "http://vault:8200")
-VAULT_TOKEN = get_vault_token()
 
 @app.route('/get_challenge', methods=['POST'])
 def get_challenge():
     try:
         data = request.get_json()
         mac_address = data.get('mac_address')
-        
-        stored_password = get_stored_password(mac_address)
-        code_hash = get_code_hash(mac_address)
+        vault_token = _get_vault_token()
+        stored_password = _get_stored_password(mac_address, vault_token)
+        code_hash = _get_code_hash(mac_address, vault_token)
 
         challenge = str(uuid.uuid4())  # Generate challenge
 
@@ -101,7 +67,39 @@ def authenticate():
         return jsonify(message=str(e)), 500
     
 
+def _get_vault_token():
+    try:
+        token = redis_client.get("vault_root_token")
+        if token:
+            return token.decode("utf-8")
+        else:
+            raise Exception("Vault token not found in Redis")
+    except Exception as e:
+        raise Exception("Error retrieving Vault token from Redis", e)
+    
+def _get_stored_password(mac_address, vault_token):
+    try:
+        response = requests.get(
+            f"{VAULT_ADDRESS}/v1/secret/data/users/{mac_address}",
+            headers={"X-Vault-Token": vault_token}
+        )
+        response_json = response.json()
+        stored_password = response_json["data"]["password"]
+        return stored_password
+    except Exception as e:
+        raise Exception("Error retrieving stored password from Vault", e)
 
+def _get_code_hash(mac_address, vault_token):
+    try:
+        response = requests.get(
+            f"{VAULT_ADDRESS}/v1/secret/data/fog_nodes/{mac_address}",
+            headers={"X-Vault-Token": vault_token}
+        )
+        response_json = response.json()
+        code_hash = response_json["data"]["code_hash"]
+        return code_hash
+    except Exception as e:
+        raise Exception("Error retrieving code hash from Vault", e)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
