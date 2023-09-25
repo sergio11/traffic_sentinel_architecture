@@ -75,6 +75,98 @@ The Traffic Sentinel system comprises the following components:
 
 3. **Data Insights**: The analyzed data is used to generate insights into traffic patterns, congestion, and vehicle movement. These insights can be visualized through a dashboard or accessed through APIs.
 
+
+## Provisioning API Documentation
+
+This API is designed to manage and provision camera devices with their associated information. It allows you to retrieve camera details, link new cameras, remove camera associations, and list all existing camera associations.
+
+### Introduction
+
+The Provisioning API is used for managing camera devices and their related data. It communicates with a MongoDB database to store and retrieve camera information. Additionally, it utilizes Redis for session management and authentication.
+
+### Endpoints
+
+#### 1. Get Fog Password
+
+- **HTTP Method:** `GET`
+- **URL:** `/get-fog-password`
+- **Description:** Retrieve the Fog node's password associated with a MAC address.
+- **Parameters:**
+  - `mac_address` (query parameter, required): MAC address of the device for which you want to retrieve the password.
+- **Response:**
+  - `fog_password` (JSON): The Fog node's password.
+- **HTTP Status Codes:**
+  - `200 OK`: Successful retrieval.
+  - `400 Bad Request`: MAC address not provided.
+  - `404 Not Found`: Node password not found.
+
+#### 2. Provision Camera
+
+- **HTTP Method:** `GET`
+- **URL:** `/provision`
+- **Description:** Retrieve camera details based on a MAC address and an authentication session.
+- **Parameters:**
+  - `mac_address` (query parameter, required): MAC address of the camera device.
+- **Headers:**
+  - `X-Session-ID` (required): Authentication session ID.
+- **Response:**
+  - `camera_url` (JSON): The camera's URL.
+  - `camera_username` (JSON): The camera's username.
+  - `camera_password` (JSON): The camera's password.
+- **HTTP Status Codes:**
+  - `200 OK`: Successful retrieval.
+  - `400 Bad Request`: MAC address or session ID not provided.
+  - `401 Unauthorized`: Invalid session ID.
+  - `404 Not Found`: MAC address not found.
+
+#### 3. Provision Camera (Link)
+
+- **HTTP Method:** `POST`
+- **URL:** `/provision/link`
+- **Description:** Link a new camera with its details.
+- **Request Body:**
+  - `mac_address` (required): MAC address of the new camera.
+  - `camera_url` (required): URL of the camera.
+  - `camera_username` (required): Username for accessing the camera.
+  - `camera_password` (required): Password for accessing the camera.
+- **Response:**
+  - `message` (JSON): A message indicating the result of the operation.
+- **HTTP Status Codes:**
+  - `201 Created`: Camera provisioned successfully.
+  - `400 Bad Request`: Missing required data.
+  - `409 Conflict`: MAC address already exists.
+
+#### 4. Remove Camera Association
+
+- **HTTP Method:** `DELETE`
+- **URL:** `/provision/remove`
+- **Description:** Remove the association of a camera with a MAC address.
+- **Parameters:**
+  - `mac_address` (query parameter, required): MAC address of the camera to disassociate.
+- **Response:**
+  - `message` (JSON): A message indicating the result of the operation.
+- **HTTP Status Codes:**
+  - `200 OK`: Camera association removed.
+  - `400 Bad Request`: MAC address not provided.
+  - `404 Not Found`: MAC address not found.
+
+#### 5. List Camera Associations
+
+- **HTTP Method:** `GET`
+- **URL:** `/provision/list`
+- **Description:** Retrieve a list of all MAC addresses with their associated camera details.
+- **Response:**
+  - `mac_address` (JSON): The MAC address of a camera.
+  - `camera_url` (JSON): The camera's URL.
+  - `camera_username` (JSON): The camera's username.
+  - `camera_password` (JSON): The camera's password.
+- **HTTP Status Codes:**
+  - `200 OK`: Successful retrieval.
+
+### Errors
+
+In case of any errors or issues, the API will respond with appropriate HTTP status codes and JSON messages describing the error.
+
 ## Contributing
 
 Contributions are welcome! If you'd like to contribute to Traffic Sentinel, please follow the guidelines in [CONTRIBUTING.md](CONTRIBUTING.md).
