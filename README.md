@@ -62,7 +62,6 @@ The Traffic Sentinel system comprises the following components:
 
 1. **Installation**: Clone the repository and install the required dependencies using the provided `requirements.txt` file.
 
-
 2. **Configuration**: Configure the system by providing the necessary environment variables, such as MQTT broker, Redis host, MongoDB connection string, etc.
 
 3. **Run the Components**: Start the Fog nodes, Apache Flink jobs, and the Flask-based Provisioning Service.
@@ -75,6 +74,72 @@ The Traffic Sentinel system comprises the following components:
 
 3. **Data Insights**: The analyzed data is used to generate insights into traffic patterns, congestion, and vehicle movement. These insights can be visualized through a dashboard or accessed through APIs.
 
+## CHAP Authentication API Documentation
+
+This API provides Challenge-Handshake Authentication Protocol (CHAP) authentication for Fog nodes. It generates and verifies challenges for authentication.
+
+### Endpoints
+
+#### 1. Get Challenge
+
+- **HTTP Method:** `POST`
+- **URL:** `/get_challenge`
+- **Description:** Generate and store a CHAP challenge for authentication.
+- **Request Body:**
+  - `mac_address` (JSON, required): The MAC address of the device.
+- **Response:**
+  - `challenge` (JSON): The generated challenge.
+- **HTTP Status Codes:**
+  - `200 OK`: Challenge generated successfully.
+  - `404 Not Found`: Challenge not found (may happen if the challenge expired before authentication).
+  - `500 Internal Server Error`: Server error.
+
+#### 2. Authenticate
+
+- **HTTP Method:** `POST`
+- **URL:** `/authenticate`
+- **Description:** Authenticate the client's response to the CHAP challenge.
+- **Request Body:**
+  - `mac_address` (JSON, required): The MAC address of the device.
+  - `client_response` (JSON, required): The client's response to the challenge.
+- **Response:**
+  - `message` (JSON): A message indicating the authentication result.
+  - `session_id` (JSON): A session ID for authenticated sessions.
+- **HTTP Status Codes:**
+  - `200 OK`: Authentication successful. A session ID is provided.
+  - `401 Unauthorized`: Authentication failed.
+  - `404 Not Found`: Challenge not found.
+  - `500 Internal Server Error`: Server error.
+
+### Errors
+
+In case of any errors or issues, the API will respond with appropriate HTTP status codes and JSON messages describing the error.
+
+### Internal Functions
+
+#### 1. `_get_vault_token()`
+
+- **Description:** Retrieve the Vault token from Redis.
+- **Response:** Vault token (str).
+- **Errors:** Throws an exception if the token is not found or if there is an error retrieving it.
+
+#### 2. `_get_stored_password(mac_address, vault_token)`
+
+- **Description:** Retrieve the stored password for a MAC address from Vault.
+- **Parameters:**
+  - `mac_address` (str): The MAC address of the device.
+  - `vault_token` (str): The Vault token for authentication.
+- **Response:** Stored password (str).
+- **Errors:** Throws an exception if the password is not found or if there is an error retrieving it.
+
+#### 3. `_get_code_hash(mac_address, vault_token)`
+
+- **Description:** Retrieve the code hash for a MAC address from Vault.
+- **Parameters:**
+  - `mac_address` (str): The MAC address of the device.
+  - `vault_token` (str): The Vault token for authentication.
+- **Response:** Code hash (str).
+- **Errors:** Throws an exception if the code hash is not found or if there is an error retrieving it.
 
 ## Provisioning API Documentation
 
