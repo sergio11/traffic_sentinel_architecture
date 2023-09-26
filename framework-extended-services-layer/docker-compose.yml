@@ -62,6 +62,36 @@ services:
     networks:
       - smart-highway-net
 
+
+  jobmanager:
+    image: ssanchez11/smart_highway_net_job_manager_flink:0.0.1
+    volumes:
+    - ./flink/jobmanager/data:/home/pyflink
+    ports:
+      - "8085:8081"
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+    networks:
+      - smart-highway-net
+
+  taskmanager:
+    image: ssanchez11/smart_highway_net_task_manager_flink:0.0.1
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    scale: 1
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+    networks:
+      - smart-highway-net
+
+
 networks:
   smart-highway-net:
     driver: bridge

@@ -118,7 +118,6 @@ def authenticate():
         return jsonify(message=str(e)), 500
     
 
-
 def _get_vault_token():
     """
     Helper function to retrieve the Vault token from Redis.

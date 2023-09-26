@@ -1,11 +1,10 @@
 from pyflink.datastream import StreamExecutionEnvironment
-from pyflink.table.descriptors import Schema, Kafka, Json
-from pyflink.table import StreamTableEnvironment, DataTypes
+from pyflink.datastream.connectors import FlinkKafkaConsumer, FlinkKafkaProducer
+from pyflink.table import StreamTableEnvironment, DataTypes, EnvironmentSettings
 from pyflink.table.window import Tumble
 from vehicle_detection_tracker import VehicleDetectionTracker
 import cv2
 import numpy as np
-import io
 import base64
 import json
 
@@ -26,36 +25,45 @@ def main():
     deep_sort_model = "path_to_deep_sort.pb"
     tracker = VehicleDetectionTracker(yolo_cfg, yolo_weights, yolo_classes, deep_sort_model)
 
+    env_settings = EnvironmentSettings.new_instance().use_blink_planner().build()
     env = StreamExecutionEnvironment.get_execution_environment()
-    t_env = StreamTableEnvironment.create(env)
+    t_env = StreamTableEnvironment.create(env, environment_settings=env_settings)
 
-    schema = Schema()
-    schema.field("mac_address", DataTypes.STRING())
-    schema.field("timestamp", DataTypes.BIGINT())
-    schema.field("frame_data", DataTypes.STRING())
+    schema = DataTypes.ROW([
+        DataTypes.FIELD("mac_address", DataTypes.STRING()),
+        DataTypes.FIELD("timestamp", DataTypes.BIGINT()),
+        DataTypes.FIELD("frame_data", DataTypes.STRING())
+    ])
 
-    t_env.connect(
-        Kafka()
-        .version("universal")
-        .topic(kafka_config["topic"])
-        .start_from_earliest()
-        .property("bootstrap.servers", kafka_config["bootstrap.servers"])
-        .property("group.id", kafka_config["group.id"])
-        .json_schema(Json().schema(schema))
+    properties = {
+        "bootstrap.servers": kafka_config["bootstrap.servers"],
+        "group.id": kafka_config["group.id"],
+        "format": "json"
+    }
+
+    kafka_source = FlinkKafkaConsumer(
+        kafka_config["topic"],
+        schema,
+        properties=properties
+    ).start_from_earliest()
+
+    kafka_sink = FlinkKafkaProducer(
+        "frame_processed",
+        schema,
+        producer_config={
+            "bootstrap.servers": "localhost:9092"
+        },
+        serialization_schema=JsonRowSerializationSchema()
     )
-    # Registrar la tabla de entrada
-    t_env.create_temporary_table("KafkaTable", "frame_data")
+
+    t_env.create_temporary_table("KafkaTable", kafka_source)
 
     t_env.from_path("KafkaTable") \
     .select("CAST(mac_address AS STRING) AS mac_address, CAST(timestamp AS BIGINT) AS timestamp, CAST(frame_data AS STRING) AS frame_data") \
     .window(Tumble.over("5.seconds").on("timestamp").alias("w")) \
     .group_by("mac_address, w") \
     .select("process_batch(mac_address, timestamp, COLLECT_LIST(frame_data)) AS processed_payload") \
-    .to_append_stream(t_env.sink_to_kafka(
-        "frame_processed",
-        {"bootstrap.servers": "localhost:9092"},
-        value_delimiter="\n"
-    ))
+    .to_append_stream(kafka_sink)
 
     # Ejecutar el programa
     env.execute("VehicleDetectionProgram")
@@ -94,6 +102,14 @@ def process_batch(mac_address, window_start, frame_data_list):
         processed_frames.append(processed_frame)
 
     return processed_frames
+
+class JsonRowSerializationSchema(SerializationSchema):
+
+    def __init__(self):
+        pass
+
+    def serialize(self, element):
+        return json.dumps(element).encode('utf-8')
 
 if __name__ == '__main__':
     main()
