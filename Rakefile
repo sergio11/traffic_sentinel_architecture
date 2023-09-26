@@ -221,8 +221,11 @@ namespace :SmartHighwayNet do
 				{ name: "ssanchez11/smart_highway_net_auth_service:0.0.1", directory: "./framework-extended-services-layer/auth" },
 				{ name: "ssanchez11/smart_highway_net_provision_service:0.0.1", directory: "./framework-extended-services-layer/provision" },
 				{ name: "ssanchez11/smart_highway_net_integrator_service:0.0.1", directory: "./framework-extended-services-layer/integrator" },
-				{ name: "ssanchez11/smart_highway_net_notifier_service:0.0.1", directory: "./framework-extended-services-layer/notifier" }
+				{ name: "ssanchez11/smart_highway_net_notifier_service:0.0.1", directory: "./framework-extended-services-layer/notifier" },
+				{ name: "ssanchez11/smart_highway_net_job_manager_flink:0.0.1", directory: "./framework-extended-services-layer/flink/jobmanager" },
+				{ name: "ssanchez11/smart_highway_net_task_manager_flink:0.0.1", directory: "./framework-extended-services-layer/flink/taskmanager" }
 			]
+
 			image_info.each do |info|
 				puts "Build Docker Image #{info[:name]}"
 				puts `docker build -t #{info[:name]} -f #{info[:directory]}/Dockerfile #{info[:directory]}`
