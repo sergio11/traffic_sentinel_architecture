@@ -1,8 +1,8 @@
+import VehicleDetectionTracker
 from pyflink.datastream import StreamExecutionEnvironment
 from pyflink.datastream.connectors import FlinkKafkaConsumer, FlinkKafkaProducer
 from pyflink.table import StreamTableEnvironment, DataTypes, EnvironmentSettings
 from pyflink.table.window import Tumble
-from vehicle_detection_tracker import VehicleDetectionTracker
 import cv2
 import numpy as np
 import base64

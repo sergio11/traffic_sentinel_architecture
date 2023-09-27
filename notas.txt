@@ -26,3 +26,9 @@ https://github.com/ahmetozlu/vehicle_counting_tensorflow
 
 https://github.com/ahmetozlu/vehicle_counting_tensorflow/tree/master
 https://github.com/guptavasu1213/IoT-Traffic-Surveillance-System/tree/master
+
+python yolo\v8\detect\predict_test.py model=yolov8m.pt source="https://49-d2.divas.cloud/CHAN-8293/CHAN-8293_1.stream/playlist.m3u8?83.52.13.30&vdswztokenhash=cy0V54p4eY_4209Ljv9UVJqWIa_dIQo24HrIkL8A3qg=" show=True
+
+
+
+python yolo\v8\detect\predict_test.py model=yolov8m.pt show=True
