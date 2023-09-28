@@ -1,7 +1,6 @@
 opencv-python-headless==4.8.0.76
 imutils==0.5.4
-pytesseract==0.3.10
-deepsort==0.0.5
 apache-flink==1.17.1
 apache-flink-libraries==1.17.1
 pyflink==1.0
+ultralytics==8.0.188
