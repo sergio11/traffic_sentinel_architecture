@@ -13,10 +13,11 @@ services:
       - REDIS_PORT=${REDIS_PORT}
       - VAULT_ADDRESS=${VAULT_ADDRESS}
     ports:
-      - "5000:5000"
+      - "5000:5000"  # Map container port 5000 to host port 5000
     networks:
       - smart-highway-net
 
+  # Notifier service for sending notifications
   notifier:
     image: ssanchez11/smart_highway_net_notifier_service:0.0.1
     container_name: notifier-service
@@ -32,6 +33,7 @@ services:
     networks:
       - smart-highway-net
 
+  # Provision service for setting up configurations
   provision:
     image: ssanchez11/smart_highway_net_provision_service:0.0.1
     container_name: provision-service
@@ -43,10 +45,11 @@ services:
       - MONGO_HOST=${MONGO_HOST}
       - MONGO_PORT=${MONGO_PORT}
     ports:
-      - "5001:5001"
+      - "5001:5001"  # Map container port 5001 to host port 5001
     networks:
       - smart-highway-net
 
+  # Integrator service for data integration
   integrator:
     image: ssanchez11/smart_highway_net_integrator_service:0.0.1
     container_name: integrator-service
@@ -62,27 +65,30 @@ services:
     networks:
       - smart-highway-net
 
-
+  # Flink Job Manager service for distributed processing
   jobmanager:
     image: ssanchez11/smart_highway_net_job_manager_flink:0.0.1
+    container_name: job-manager-flink
     volumes:
-    - ./flink/jobmanager/data:/home/pyflink
+    - ./flink/jobmanager/data:/home/pyflink  # Mount local data volume to the container
     ports:
-      - "8085:8081"
-    command: jobmanager
+      - "8085:8081"  # Map container port 8081 to host port 8085
+    command: jobmanager  # Run the job manager
     environment:
       - |
         FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
+        jobmanager.rpc.address: jobmanager  # Set Flink's job manager address
     networks:
       - smart-highway-net
 
+  # Flink Task Manager service for distributed processing
   taskmanager:
     image: ssanchez11/smart_highway_net_task_manager_flink:0.0.1
+    container_name: task-manager-flink
     depends_on:
-      - jobmanager
-    command: taskmanager
-    scale: 1
+      - jobmanager  # Ensure that the job manager is ready before starting the task manager
+    command: taskmanager  # Run the task manager
+    scale: 1  # Scale to 1 instance
     environment:
       - |
         FLINK_PROPERTIES=
@@ -91,7 +97,7 @@ services:
     networks:
       - smart-highway-net
 
-
+# Define a custom bridge network for the services to communicate
 networks:
   smart-highway-net:
-    driver: bridge
+    driver: bridge  # Use the bridge network driver
