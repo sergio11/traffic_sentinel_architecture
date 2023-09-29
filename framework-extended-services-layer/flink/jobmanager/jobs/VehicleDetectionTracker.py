@@ -1,3 +1,4 @@
+import time
 import cv2
 import numpy as np
 import base64
@@ -62,6 +63,7 @@ class VehicleTracker:
                 direction = None  # Initialize direction as None
                 color_label = None
                 roi_base64 = None # Base64-encoded ROI image
+                timestamp = int(time.time())
 
                 if len(track) >= 2:
                     x1, y1 = track[0]  # Initial position
@@ -123,6 +125,7 @@ class VehicleTracker:
                     'vehicle_id': track_id,
                     'direction': direction,
                     'color': color_label,
+                    'timestamp': timestamp,
                     'speed_kmph': speed_kmph if self.speed_threshold_min_kmph <= speed_kmph <= self.speed_threshold_max_kmph else None,
                     'roi_base64': roi_base64
                 })
@@ -132,8 +135,8 @@ class VehicleTracker:
             frame_base64 = base64.b64encode(buffer).decode()
 
             return {
-                'processed_info': processed_info
-                #'frame_base64': frame_base64
+                'processed_info': processed_info,
+                'frame_base64': frame_base64
             }
 
         else:
