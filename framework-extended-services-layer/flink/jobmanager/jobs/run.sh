@@ -9,7 +9,7 @@ fi
 echo "Running VideoFrameProcessorFlink.py..."
 
 # Execute the Flink program in Python
-bin/flink run --python VideoFrameProcessorFlink.py
+../bin/flink run --python VideoFrameProcessorFlink.py
 
 # Check the exit code
 if [ $? -eq 0 ]; then
