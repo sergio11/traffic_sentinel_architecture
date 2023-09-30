@@ -8,8 +8,8 @@ from pyflink.datastream import (
     StreamExecutionEnvironment,
     TimeCharacteristic,
 )
-from pyflink.table.expressions import col, lit
-from pyflink.table import StreamTableEnvironment, EnvironmentSettings
+from pyflink.table.expressions import col, call
+from pyflink.table import StreamTableEnvironment, EnvironmentSettings, DataTypes
 from pyflink.table.udf import TableFunction, udtf
 from logger import Logger
 
@@ -20,7 +20,7 @@ KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9
 KAFKA_GROUP_ID = os.environ.get("KAFKA_GROUP_ID", "flink-consumer-group")
 LOGGER = Logger("VideoFrameProcessorFlink")
 
-
+# Define a custom TableFunction for processing frames
 class FrameProcessorTableFunction(TableFunction):
 
     def __init__(self):
@@ -38,35 +38,36 @@ class FrameProcessorTableFunction(TableFunction):
         def _process_frame(frame_data):
             frame = _decode_image(frame_data)
             processed_frame = self.tracker.process_frame(frame)
-            return processed_frame
-
+            return str(processed_frame)
+        # Process the frame data and yield the result
         processed_frame = _process_frame(frame_data)
-        yield processed_frame
+        yield str(processed_frame)
 
 def main():
     """Orchestrates the stream processing engine."""
     LOGGER.info("Starting PyFlink stream processing engine...")
     
+    # Get Flink execution environment and table environment
     env, t_env = get_flink_environment()
+
     # Create source and sink tables
     create_source_table(t_env)
     create_sink_table(t_env)
 
+    # Register the custom FrameProcessorTableFunction as a temporary function   
     t_env.create_temporary_function("frame_processor", udtf(FrameProcessorTableFunction(), result_types=['STRING']))
 
-    # Define the SQL query with the custom aggregation function.
-    sql_query = f"""
-        SELECT
-            mac_address,
-            frame_processor(mac_address, frame_data) AS processed_payload
-        FROM
-            VideoFramesReceived
-    """
-
-    LOGGER.info(sql_query)
-
-    # Execute the SQL query and send the results to the "VideoFramesProcessed" stream.
-    t_env.execute_sql(sql_query).to_append_stream("VideoFramesProcessed", output_mode="append")
+    # Define the stream processing pipeline
+    t_env.from_path("VideoFramesReceived") \
+        .select(
+            col("mac_address"), 
+            col("event_time"), 
+            call("frame_processor", 
+                 col("mac_address"), 
+                 col("frame_data")
+                ).cast(DataTypes.STRING())
+            ) \
+        .execute_insert("VideoFramesProcessed").wait()
 
     # Execute the Flink program
     env.execute("VideoFrameProcessorFlink")
@@ -155,7 +156,7 @@ def create_sink_table(t_env):
         f"""
         CREATE TABLE IF NOT EXISTS VideoFramesProcessed (
             mac_address STRING,
-            frame_timestamp BIGINT,
+            event_time TIMESTAMP(3),
             processed_frame STRING
         ) WITH (
             'connector' = 'kafka',
