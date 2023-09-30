@@ -71,6 +71,7 @@ services:
     container_name: job-manager-flink
     volumes:
     - ./flink/jobmanager/data:/home/pyflink  # Mount local data volume to the container
+    - ./flink/jobmanager/jobs:/opt/flink/jobs  # Map local jobs directory to the container
     ports:
       - "8085:8081"  # Map container port 8081 to host port 8085
     command: jobmanager  # Run the job manager
