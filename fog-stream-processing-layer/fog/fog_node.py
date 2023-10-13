@@ -11,15 +11,15 @@ import requests
 from threading import Thread
 
 # Load configuration from environment variables
-PROVISIONING_SERVICE_URL = os.environ.get("PROVISIONING_SERVICE_URL")
+PROVISIONING_SERVICE_URL = os.environ.get("PROVISIONING_SERVICE_URL", "http://localhost:5001/")
 MQTT_BROKER = os.environ.get("MQTT_BROKER")
 MQTT_PORT = int(os.environ.get("MQTT_PORT", 1883))
 MQTT_TOPIC = os.environ.get("MQTT_TOPIC", "frames")
 MQTT_BROKER_USERNAME = os.environ.get("MQTT_BROKER_USERNAME")
 MQTT_BROKER_PASSWORD = os.environ.get("MQTT_BROKER_PASSWORD")
 MQTT_REAUTH_TOPIC = os.environ.get("MQTT_REAUTH_TOPIC", "request-auth")
-AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL")
-FRAMES_OUTPUT_DIRECTORY = "frames_captured"
+AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL", "http://localhost:5000/")
+FRAMES_OUTPUT_DIRECTORY = os.environ.get("FRAMES_OUTPUT_DIRECTORY", "frames_captured")
 
 mac_address = ""
 

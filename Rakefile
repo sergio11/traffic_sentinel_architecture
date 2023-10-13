@@ -258,11 +258,36 @@ namespace :SmartHighwayNet do
 		task :deploy => [ :check_docker_task, :login, :check_deployment_file, :cleaning_environment_task, :start  ] do
 			puts "Deploy framework extended service layer container"
 		end
+
+		desc "Redeploy Flink job files"
+		task :redeploy_jobs do
+			puts "Cleaning job directory in the Flink container..."
+			# Define the name of the Flink container
+			flink_container_name = "job-manager-flink"
+			# Define the path to your local job files directory
+			local_jobs_directory = "./framework-extended-services-layer/flink/jobmanager/jobs/."
+			# Delete contents of the directory
+			sh "docker exec #{flink_container_name} rm -rf /opt/flink/jobs/*" 
+			puts "Copying local job files to the Flink container..."
+			sh "docker cp #{local_jobs_directory} #{flink_container_name}:/opt/flink/jobs"
+			puts "Job files redeployed successfully."
+		end
 	end
 	  
 	namespace :FogStreamingLayer do
 		desc "Tasks related to the Fog Streaming Layer"
 		# Define tasks related to the Fog Streaming Layer
+
+		desc "Build the Docker image for the Fog node"
+		task :build do
+			puts "Building the Docker image for the Fog node..."
+			fog_directory_path = "fog-stream-processing-layer/fog"
+			image_name = "ssanchez11/smart_highway_net_fog_node:0.0.1"
+			build_command = "docker build -t #{image_name} -f #{fog_directory_path}/Dockerfile #{fog_directory_path}"
+			puts `#{build_command}`
+			puts "Docker image #{image_name} has been created! trying to upload it!"
+			puts `docker push #{image_name}`
+		end
 
 		desc "Check Fog streaming layer Deployment File"
 		task :check_deployment_file do

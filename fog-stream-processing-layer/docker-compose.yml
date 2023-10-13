@@ -1,18 +1,13 @@
-version: '3'
+# Docker Compose Configuration for Fog Node Service
+
+version: '3'  # Specifies the Docker Compose version being used.
+
 services:
-    
-  fog_node:
-    build: .
-    environment:
-      AUTH_SERVICE_URL: "http://auth_service_url/authenticate"
-      MQTT_BROKER: "broker.example.com"
-      MQTT_PORT: "8883"
-      MQTT_USERNAME: "tu_usuario"
-      MQTT_PASSWORD: "tu_contraseña"
-      MQTT_CA_CERT: "/app/ruta_al_certificado_ca.crt"
-      CAMERA_URL: "rtsp://username:password@camera_ip_address:port/stream"
-      OUTPUT_DIRECTORY: "/app/frames/"
-    volumes:
-      - ./ruta_al_certificado_ca.crt:/app/ruta_al_certificado_ca.crt
-    network_mode: "host"
-    mac_address: "02:42:ac:11:00:02"  # Aquí define la dirección MAC deseada
+
+  # Fog Node Service Configuration
+  fog_node_1:
+    image: ssanchez11/smart_highway_net_fog_node:0.0.1
+    container_name: fog_node_1
+    env_file:
+      - ./.env  # Specifies the environment file to use for this service.
+    mac_address: "02:42:ac:11:00:02"  # Specifies the MAC address for the container, useful in network configurations.
