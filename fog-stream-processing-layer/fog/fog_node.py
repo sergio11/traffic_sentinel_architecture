@@ -9,6 +9,9 @@ import uuid
 import re
 import requests
 from threading import Thread
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # Load configuration from environment variables
 PROVISIONING_SERVICE_URL = os.environ.get("PROVISIONING_SERVICE_URL", "http://localhost:5001/")
@@ -20,6 +23,8 @@ MQTT_BROKER_PASSWORD = os.environ.get("MQTT_BROKER_PASSWORD")
 MQTT_REAUTH_TOPIC = os.environ.get("MQTT_REAUTH_TOPIC", "request-auth")
 AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL", "http://localhost:5000/")
 FRAMES_OUTPUT_DIRECTORY = os.environ.get("FRAMES_OUTPUT_DIRECTORY", "frames_captured")
+MAX_RETRIES = int(os.environ.get("MAX_RETRIES", 3))
+RETRY_DELAY = int(os.environ.get("RETRY_DELAY", 10))
 
 mac_address = ""
 
@@ -41,7 +46,7 @@ def calculate_hash(file_path):
             hash_hex = hash_object.hexdigest()
             return hash_hex
     except Exception as e:
-        print("Error calculating hash:", e)
+        logging.error("Error calculating hash: %s", e)
         return None
 
 # Function to obtain the MAC address of the device
@@ -53,11 +58,11 @@ def get_mac_address():
         str: MAC address of the device.
     """
     try:
-        output = subprocess.check_output(["ifconfig", "eth0"], stderr=subprocess.STDOUT, text=True)
+        output = subprocess.check_output(["ip", "link", "show", "eth0"], stderr=subprocess.STDOUT, text=True)
         mac_address = re.search(r"(\w\w:\w\w:\w\w:\w\w:\w\w:\w\w)", output).group(0)
         return mac_address
     except Exception as e:
-        print("Error obtaining MAC address:", e)
+        logging.error("Error obtaining MAC address: %s", e)
         return None
 
 # Function to retrieve a challenge for authentication
@@ -76,9 +81,11 @@ def get_challenge(mac_address):
         if response.status_code == 200:
             data = response.json()
             return data.get("challenge")
-        return None
+        else:
+            logging.error("Failed to retrieve challenge. Status code: %d", response.status_code)
+            return None
     except Exception as e:
-        print("Error getting challenge:", e)
+        logging.error("Error getting challenge: %s", e)
         return None
 
 
@@ -100,7 +107,7 @@ def authenticate_chap(mac_address, client_response):
             return True
         return False
     except Exception as e:
-        print("Error during authentication:", e)
+        logging.error("Error during authentication: %s", e)
         return False
 
 # Callback function when the MQTT client connects to the broker
@@ -115,9 +122,9 @@ def on_connect(client, userdata, flags, rc):
         rc: Result code.
     """
     if rc == 0:
-        print("Connected to MQTT broker")
+        logging.info("Connected to MQTT broker")
     else:
-        print("Connection error with code:", rc)
+        logging.error("Connection error with code: %s", rc)
 
 # Callback function when an MQTT message is received
 def on_message(client, userdata, message):
@@ -133,10 +140,10 @@ def on_message(client, userdata, message):
         topic = message.topic
         payload = message.payload.decode("utf-8")
         if topic == "__keyevent@0__:expired" and mac_address in payload:
-            print("Received session expiration notification. Re-authenticating...")
+            logging.info("Received session expiration notification. Re-authenticating...")
             authenticate(mac_address)
     except Exception as e:
-        print("Error handling MQTT message:", e)
+        logging.error("Error handling MQTT message: %s", e)
 
 # Function to capture a frame, encode it in base64, and send it over MQTT
 def capture_and_send_frame(frame_path, timestamp, camera_url, mac_address):
@@ -169,10 +176,10 @@ def capture_and_send_frame(frame_path, timestamp, camera_url, mac_address):
                 "frame_data": base64_frame
             }
             client.publish(MQTT_TOPIC, payload=str(payload), qos=0)
-            print("Frame sent to MQTT")
+            logging.info("Frame sent to MQTT")
         os.remove(frame_path)
     except Exception as e:
-        print("Error:", e)
+        logging.error("Error: %s", e)
 
 # Function for the frame capture loop
 def frame_capture_loop(camera_url, mac_address):
@@ -204,7 +211,8 @@ def authenticate(mac_address):
     try:
         code_file_path = os.path.abspath(__file__)
         code_hash = calculate_hash(code_file_path)
-        print("Hash value of this code:", code_hash)
+        logging.info("Hash value of this code: %s", code_hash)  # Log code hash
+        
         challenge = get_challenge(mac_address)
         if challenge:
             password_response = requests.get(f"{PROVISIONING_SERVICE_URL}/get-fog-password?mac_address={mac_address}")
@@ -213,16 +221,40 @@ def authenticate(mac_address):
                 node_password = password_data.get("fog_password")
                 if node_password:
                     client_response = hashlib.sha256((node_password + challenge + code_hash).encode()).hexdigest()
-                    return authenticate_chap(mac_address, client_response)
+                    if authenticate_chap(mac_address, client_response):
+                        logging.info("Device authenticated successfully")  # Log successful authentication
+                        return True
+                    else:
+                        logging.error("Authentication failed using CHAP")
                 else:
-                    print("Error retrieving node password from provisioning service")
+                    logging.error("Error retrieving node password from provisioning service")
             else:
-                print("Error getting node password from provisioning service")
+                logging.error("Error getting node password from provisioning service")
         else:
-            print("Error getting challenge")
+            logging.error("Error getting challenge")
     except Exception as e:
-        print("Error during reauthentication:", e)
+        logging.error("Error during reauthentication: %s", e)  # Log exception
         return False
+
+    
+# Function to authenticate the device with retries
+def authenticate_with_retries(mac_address):
+    """
+    Authenticate the device with retries.
+
+    Args:
+        mac_address (str): MAC address of the device.
+
+    Returns:
+        bool: True if authentication is successful, False otherwise.
+    """
+    retries = 0
+    while retries < MAX_RETRIES:
+        if authenticate(mac_address):
+            return True
+        time.sleep(RETRY_DELAY)  # Espera antes del siguiente intento
+        retries += 1
+    return False
     
 # Initialize the MQTT client and set up callbacks
 client = mqtt.Client()
@@ -235,9 +267,6 @@ client.loop_start()
 
 # Main function
 def main():
-    """
-    Main function.
-    """
     global mac_address
     mac_address = get_mac_address()
 
@@ -247,7 +276,7 @@ def main():
     if not os.path.exists(FRAMES_OUTPUT_DIRECTORY):
         os.makedirs(FRAMES_OUTPUT_DIRECTORY)
 
-    if authenticate(mac_address):
+    if authenticate_with_retries(mac_address):
         try:
             response = requests.get(f"{PROVISIONING_SERVICE_URL}?mac_address={mac_address}")
             if response.status_code == 200:
@@ -258,11 +287,11 @@ def main():
                 capture_thread = Thread(target=frame_capture_loop, args=(camera_url, camera_username, camera_password))
                 capture_thread.start()
             else:
-                print("Error retrieving provisioning data")
+                logging.error("Error retrieving provisioning data")
         except Exception as e:
-            print("Error during provisioning:", e)
+            logging.error("Error during provisioning: %s", e)
     else:
-        print(f"Error authenticating fog node with MAC {mac_address}")
+        logging.error("Error authenticating fog node with MAC %s", mac_address)
 
 # Entry point of the script
 if __name__ == "__main__":
