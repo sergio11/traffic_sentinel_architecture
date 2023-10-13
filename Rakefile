@@ -1,6 +1,7 @@
 require 'json'
 require 'redis'
 require 'vault'
+require 'digest'
 task default: %w[SmartHighwayNet:status]
 
 namespace :SmartHighwayNet do
@@ -135,22 +136,34 @@ namespace :SmartHighwayNet do
 			# Retrieve the VAULT_TOKEN from Redis
 			VAULT_TOKEN = redis_client.get('vault_root_token')
 			Vault.configure do |config|
-			config.address = VAULT_ADDRESS
-			config.token = VAULT_TOKEN
+				config.address = VAULT_ADDRESS
+				config.token = VAULT_TOKEN
 			end
-		
+
+			# Calculate the hashcode of the code once
+			code_path = './fog-stream-processing-layer/fog/fog_node.py'
+			code_hash = Digest::SHA256.file(code_path).hexdigest
+
 			# Preload Fog nodes in Vault
 			fog_nodes = [
-			{ mac_address: '02:42:ac:11:00:02', password: '9#Fg5aP@qL1' }
-			# Add more fog nodes as needed
+				{ mac_address: '02:42:ac:11:00:02', password: '9#Fg5aP@qL1', hashcode: code_hash }
 			]
-		
+
+			# Clear the existing data at the endpoint
+			begin
+				Vault.logical.delete("fog-nodes-v1/")
+				puts "Cleared existing data at 'fog-nodes-v1/' endpoint"
+			rescue Vault::HTTPClientError => e
+				puts "Error clearing existing data: #{e.response.body}"
+			end
+
 			fog_nodes.each do |node|
 				begin
-					Vault.logical.write("fog-nodes-v1/#{node[:mac_address]}", data: node[:password])
-					puts "Fog node with MAC #{node[:mac_address]} with password: #{node[:password]} preloaded in Vault"
+				# Store the new information in Vault
+				Vault.logical.write("fog-nodes-v1/#{node[:mac_address]}", data: node[:password], code_hash: node[:hashcode])
+				puts "Fog node with MAC #{node[:mac_address]} with password: #{node[:password]} and code hash: #{node[:hashcode]} preloaded in Vault"
 				rescue Vault::HTTPClientError => e
-					puts "Error from Vault server: #{e.response.body}"
+				puts "Error from Vault server: #{e.response.body}"
 				end
 			end
 		end
@@ -175,8 +188,9 @@ namespace :SmartHighwayNet do
 				fog_nodes = response.map(&:to_s)
 				fog_nodes.each do |mac_address|
 					response = Vault.logical.read("fog-nodes-v1/#{mac_address}")
-					puts "Fog Node with MAC Address #{mac_address}:"
+					puts "Fog Node with MAC Address #{mac_address}"
 					puts "Password: #{response.data[:data]}"
+					puts "Hashcode: #{response.data[:code_hash]}"
 					puts "---"
 				end
 			rescue Vault::HTTPClientError => e
