@@ -160,11 +160,11 @@ def _get_stored_password(mac_address, vault_token):
     """
     try:
         response = requests.get(
-            f"{VAULT_ADDRESS}/v1/secret/data/users/{mac_address}",
+            f"{VAULT_ADDRESS}/fog-nodes-v1/{mac_address}",
             headers={"X-Vault-Token": vault_token}
         )
         response_json = response.json()
-        stored_password = response_json["data"]["password"]
+        stored_password = response_json["data"]
         return stored_password
     except Exception as e:
         raise Exception("Error retrieving stored password from Vault", e)
@@ -189,11 +189,11 @@ def _get_code_hash(mac_address, vault_token):
     """
     try:
         response = requests.get(
-            f"{VAULT_ADDRESS}/v1/secret/data/fog_nodes/{mac_address}",
+            f"{VAULT_ADDRESS}/fog-nodes-v1/{mac_address}",
             headers={"X-Vault-Token": vault_token}
         )
         response_json = response.json()
-        code_hash = response_json["data"]["code_hash"]
+        code_hash = response_json["data"]["hashcode"]
         return code_hash
     except Exception as e:
         raise Exception("Error retrieving code hash from Vault", e)
