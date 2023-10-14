@@ -65,39 +65,6 @@ services:
     networks:
       - smart-highway-net
 
-  # Flink Job Manager service for distributed processing
-  jobmanager:
-    image: ssanchez11/smart_highway_net_job_manager_flink:0.0.1
-    container_name: job-manager-flink
-    volumes:
-    - ./flink/jobmanager/data:/home/pyflink  # Mount local data volume to the container
-    - ./flink/jobs:/opt/flink/jobs  # Map local jobs directory to the container
-    ports:
-      - "8085:8081"  # Map container port 8081 to host port 8085
-    command: jobmanager  # Run the job manager
-    environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager  # Set Flink's job manager address
-    networks:
-      - smart-highway-net
-
-  # Flink Task Manager service for distributed processing
-  taskmanager:
-    image: ssanchez11/smart_highway_net_task_manager_flink:0.0.1
-    container_name: task-manager-flink
-    depends_on:
-      - jobmanager  # Ensure that the job manager is ready before starting the task manager
-    command: taskmanager  # Run the task manager
-    scale: 1  # Scale to 1 instance
-    environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
-        taskmanager.numberOfTaskSlots: 2
-    networks:
-      - smart-highway-net
-
 # Define a custom bridge network for the services to communicate
 networks:
   smart-highway-net:
