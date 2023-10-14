@@ -22,7 +22,7 @@ COPY ../connectors/flink-connector-kafka-1.17.1.jar ./lib/
 COPY ../connectors/kafka-clients-3.5.1.jar ./lib/
 
 # Copy your TaskManager startup script
-COPY run-taskmanager.sh .
+COPY taskmanager/run-taskmanager.sh .
 
 # Set the command to run the TaskManager using your startup script
 CMD ["bash", "run-taskmanager.sh"]

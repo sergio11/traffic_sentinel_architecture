@@ -223,54 +223,51 @@ namespace :SmartHighwayNet do
 			puts "Deploy Service Foundation layer Containers"
 		end
 	end
-	  
-	namespace :FrameworkExtendedServiceLayer do
-		desc "Tasks related to the Framework-Extended Service Layer"
-		# Define tasks related to the Framework-Extended Service Layer
 
-		desc "Build Framework Extended service layer"
+
+	namespace :StreamProcessingLayer do
+		desc "Tasks related to the Stream Processing Layer"
+		
+		desc "Build stream processing layer"
 		task :build do
-			puts "Build Framework Extended service layer ..."
+		puts "Build stream processing layer ..."
 			image_info = [
-				{ name: "ssanchez11/smart_highway_net_auth_service:0.0.1", directory: "./framework-extended-services-layer/auth" },
-				{ name: "ssanchez11/smart_highway_net_provision_service:0.0.1", directory: "./framework-extended-services-layer/provision" },
-				{ name: "ssanchez11/smart_highway_net_integrator_service:0.0.1", directory: "./framework-extended-services-layer/integrator" },
-				{ name: "ssanchez11/smart_highway_net_notifier_service:0.0.1", directory: "./framework-extended-services-layer/notifier" },
-				{ name: "ssanchez11/smart_highway_net_job_manager_flink:0.0.1", directory: "./framework-extended-services-layer/flink/jobmanager" },
-				{ name: "ssanchez11/smart_highway_net_task_manager_flink:0.0.1", directory: "./framework-extended-services-layer/flink/taskmanager" }
+				{ name: "ssanchez11/smart_highway_net_job_manager_flink:0.0.1", directory: "./stream-processing-layer/jobmanager" },
+				{ name: "ssanchez11/smart_highway_net_task_manager_flink:0.0.1", directory: "./stream-processing-layer/taskmanager" }
 			]
-
+		
 			image_info.each do |info|
 				puts "Build Docker Image #{info[:name]}"
-				puts `docker build -t #{info[:name]} -f #{info[:directory]}/Dockerfile #{info[:directory]}`
+				puts `docker build -t #{info[:name]} -f #{info[:directory]}/Dockerfile ./stream-processing-layer`
 				puts "Docker image #{info[:name]} has been created! trying to upload it!"
 				puts `docker push #{info[:name]}`
 			end
 			puts `docker images`
 		end
 		
-		desc "Check Framework Extended service layer Deployment File"
+
+		desc "Check stream processing layer deployment file"	
 		task :check_deployment_file do
-			puts "Check Platform Deployment File ..."
-			raise "Deployment file not found, please check availability" unless File.file?("./framework-extended-services-layer/docker-compose.yml")
+			puts "Check stream processing layer deployment file ..."
+			raise "Deployment file not found, please check availability" unless File.file?("./stream-processing-layer/docker-compose.yml")
 			puts "Platform Deployment File OK!"
 		end
 
-		desc "Start framework extended service layer containers"
+		desc "Start stream processing layer containers"
 		task :start => [ :check_docker_task, :login, :check_deployment_file  ] do
-			puts "Start framework extended service layer containers"
-			puts `docker-compose -f ./framework-extended-services-layer/docker-compose.yml up -d 2>&1`
+			puts "Start stream processing layer containers"
+			puts `docker-compose -f ./stream-processing-layer/docker-compose.yml up -d 2>&1`
 		end
 
-		desc "Stop framework extended service layer container"
+		desc "Stop stream processing layer container"
 		task :stop => [ :check_docker_task, :login, :check_deployment_file  ] do
-			puts "Stop framework extended service layer container"
-			puts `docker-compose -f ./framework-extended-services-layer/docker-compose.yml stop 2>&1`
+			puts "Stop stream processing layer container"
+			puts `docker-compose -f ./stream-processing-layer/docker-compose.yml stop 2>&1`
 		end
 
-		desc "Deploy framework extended service layer container"
+		desc "Deploy stream processing layer container"
 		task :deploy => [ :check_docker_task, :login, :check_deployment_file, :cleaning_environment_task, :start  ] do
-			puts "Deploy framework extended service layer container"
+			puts "Deploy stream processing layer container"
 		end
 
 		desc "Install and run VideoFrameProcessorFlink"
@@ -323,6 +320,55 @@ namespace :SmartHighwayNet do
 				puts "Error: #{job_file} exited with an invalid exit code in the jobmanager container."
 				exit 1
 			end
+		end
+	end
+	  
+	  
+	namespace :FrameworkExtendedServiceLayer do
+		desc "Tasks related to the Framework-Extended Service Layer"
+		# Define tasks related to the Framework-Extended Service Layer
+
+		desc "Build Framework Extended service layer"
+		task :build do
+			puts "Build Framework Extended service layer ..."
+			image_info = [
+				{ name: "ssanchez11/smart_highway_net_auth_service:0.0.1", directory: "./framework-extended-services-layer/auth" },
+				{ name: "ssanchez11/smart_highway_net_provision_service:0.0.1", directory: "./framework-extended-services-layer/provision" },
+				{ name: "ssanchez11/smart_highway_net_integrator_service:0.0.1", directory: "./framework-extended-services-layer/integrator" },
+				{ name: "ssanchez11/smart_highway_net_notifier_service:0.0.1", directory: "./framework-extended-services-layer/notifier" },
+			]
+
+			image_info.each do |info|
+				puts "Build Docker Image #{info[:name]}"
+				puts `docker build -t #{info[:name]} -f #{info[:directory]}/Dockerfile #{info[:directory]}`
+				puts "Docker image #{info[:name]} has been created! trying to upload it!"
+				puts `docker push #{info[:name]}`
+			end
+			puts `docker images`
+		end
+		
+		desc "Check Framework Extended service layer Deployment File"
+		task :check_deployment_file do
+			puts "Check Platform Deployment File ..."
+			raise "Deployment file not found, please check availability" unless File.file?("./framework-extended-services-layer/docker-compose.yml")
+			puts "Platform Deployment File OK!"
+		end
+
+		desc "Start framework extended service layer containers"
+		task :start => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Start framework extended service layer containers"
+			puts `docker-compose -f ./framework-extended-services-layer/docker-compose.yml up -d 2>&1`
+		end
+
+		desc "Stop framework extended service layer container"
+		task :stop => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Stop framework extended service layer container"
+			puts `docker-compose -f ./framework-extended-services-layer/docker-compose.yml stop 2>&1`
+		end
+
+		desc "Deploy framework extended service layer container"
+		task :deploy => [ :check_docker_task, :login, :check_deployment_file, :cleaning_environment_task, :start  ] do
+			puts "Deploy framework extended service layer container"
 		end
 	end
 	  
