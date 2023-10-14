@@ -1,7 +1,0 @@
-opencv-python-headless==4.8.1.78
-imutils==0.5.4
-apache-flink==1.17.1
-apache-flink-libraries==1.17.1
-pyflink==1.0
-ultralytics==8.0.145
-colorlog

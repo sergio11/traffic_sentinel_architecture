@@ -273,18 +273,56 @@ namespace :SmartHighwayNet do
 			puts "Deploy framework extended service layer container"
 		end
 
-		desc "Redeploy Flink job files"
-		task :redeploy_jobs do
-			puts "Cleaning job directory in the Flink container..."
-			# Define the name of the Flink container
-			flink_container_name = "job-manager-flink"
-			# Define the path to your local job files directory
-			local_jobs_directory = "./framework-extended-services-layer/flink/jobmanager/jobs/."
-			# Delete contents of the directory
-			sh "docker exec #{flink_container_name} rm -rf /opt/flink/jobs/*" 
-			puts "Copying local job files to the Flink container..."
-			sh "docker cp #{local_jobs_directory} #{flink_container_name}:/opt/flink/jobs"
-			puts "Job files redeployed successfully."
+		desc "Install and run VideoFrameProcessorFlink"
+		task :install_job do
+			compose_file_path = "./framework-extended-services-layer/docker-compose.yml"
+			job_directory = "VideoFrameProcessor"  # Name of the Job directory
+			job_file = "#{job_directory}/VideoFrameProcessorFlink.py"
+			requirements_file = "#{job_directory}/requirements.txt"
+
+			# Check if the Job directory exists in the jobmanager container
+			check_directory_command = "docker-compose -f #{compose_file_path} exec -T jobmanager test -d /opt/flink/jobs/#{job_directory}"
+			system(check_directory_command)
+
+			if $?.success?
+				puts "The #{job_directory} directory exists in the jobmanager container."
+			else
+				puts "Error: The #{job_directory} directory does not exist in the jobmanager container."
+				exit 1
+			end
+
+			# Check if the Job Python file exists in the jobmanager container
+			check_file_command = "docker-compose -f #{compose_file_path} exec -T jobmanager test -f /opt/flink/jobs/#{job_file}"
+			system(check_file_command)
+
+			if $?.success?
+				puts "The #{job_file} file exists in the jobmanager container."
+			else
+				puts "Error: The #{job_file} file does not exist in the jobmanager container."
+				exit 1
+			end
+
+			check_requirements_file_command = "docker-compose -f #{compose_file_path} exec -T jobmanager test -f /opt/flink/jobs/#{requirements_file}"
+			system(check_requirements_file_command)
+
+			if $?.success?
+				# Install dependencies if requirements.txt
+				puts "Installing Python dependencies from #{requirements_file} in the jobmanager container..."
+				install_requirements_command = "docker-compose -f #{compose_file_path} exec -T jobmanager pip install -r /opt/flink/jobs/#{requirements_file}"
+				system(install_requirements_command)
+			end
+
+			# Run the Flink program in Python in the job-manager container
+			flink_command = "docker-compose exec -T jobmanager /opt/flink/bin/flink run --python /opt/flink/jobs/#{job_file}"
+			system(flink_command)
+
+			# Check the exit code
+			if $?.success?
+				puts "#{job_file} executed successfully in the jobmanager container."
+			else
+				puts "Error: #{job_file} exited with an invalid exit code in the jobmanager container."
+				exit 1
+			end
 		end
 	end
 	  
