@@ -121,7 +121,7 @@ namespace :SmartHighwayNet do
 			puts vault_status
 			if  /Sealed\s+false/.match(vault_status) && /Initialized\s+true/.match(vault_status)
 				puts `docker exec -it vault vault login #{root_token}`
-				puts `docker exec -it vault vault secrets enable -path="fog-nodes-v1" kv`
+				puts `docker exec -it vault vault secrets enable -path="secret/data/fog-nodes-v1" kv`
 			else
 				puts "Operation not allowed"
 			end
@@ -131,6 +131,7 @@ namespace :SmartHighwayNet do
 		task :preload_fog_nodes do
 			# Redis Configuration
 			redis_client = Redis.new(host: "localhost", port: 6379, db: 0)
+
 			# Vault Configuration
 			VAULT_ADDRESS = 'http://localhost:8200'
 			# Retrieve the VAULT_TOKEN from Redis
@@ -139,29 +140,32 @@ namespace :SmartHighwayNet do
 				config.address = VAULT_ADDRESS
 				config.token = VAULT_TOKEN
 			end
+			# Load configuration from a JSON file
+			config_json = File.read('config.json')
+			config_data = JSON.parse(config_json)
 
-			# Calculate the hashcode of the code once
-			code_path = './fog-stream-processing-layer/fog/fog_node.py'
+			code_path = config_data['code_path']
 			code_hash = Digest::SHA256.file(code_path).hexdigest
 
-			# Preload Fog nodes in Vault
-			fog_nodes = [
-				{ mac_address: '02:42:ac:11:00:02', password: '9#Fg5aP@qL1', hashcode: code_hash }
-			]
+			fog_nodes = config_data['fog_nodes']
+
+			# Vault Secret Endpoint
+			vault_secret_endpoint = config_data['vault_secret_endpoint']
 
 			# Clear the existing data at the endpoint
 			begin
-				Vault.logical.delete("fog-nodes-v1/")
-				puts "Cleared existing data at 'fog-nodes-v1/' endpoint"
+				Vault.logical.delete(vault_secret_endpoint)
+				puts "Cleared existing data at '#{vault_secret_endpoint}' endpoint"
 			rescue Vault::HTTPClientError => e
 				puts "Error clearing existing data: #{e.response.body}"
 			end
 
 			fog_nodes.each do |node|
+				mac_without_colons = node['mac_address'].delete(":")
 				begin
 				# Store the new information in Vault
-				Vault.logical.write("fog-nodes-v1/#{node[:mac_address]}", data: node[:password], code_hash: node[:hashcode])
-				puts "Fog node with MAC #{node[:mac_address]} with password: #{node[:password]} and code hash: #{node[:hashcode]} preloaded in Vault"
+				Vault.logical.write("#{vault_secret_endpoint}/#{mac_without_colons}", data: node['password'], code_hash: code_hash)
+				puts "Fog node with MAC #{node['mac_address']} with password: #{node['password']} and code hash: #{code_hash} preloaded in Vault"
 				rescue Vault::HTTPClientError => e
 				puts "Error from Vault server: #{e.response.body}"
 				end
@@ -170,7 +174,6 @@ namespace :SmartHighwayNet do
 
 		desc "Retrieve Fog Nodes from Vault"
 		task :retrieve_fog_nodes do
-
 			# Redis Configuration
 			redis_client = Redis.new(host: "localhost", port: 6379, db: 0)
 
@@ -178,20 +181,29 @@ namespace :SmartHighwayNet do
 			VAULT_ADDRESS = 'http://localhost:8200'
 			# Retrieve the VAULT_TOKEN from Redis
 			VAULT_TOKEN = redis_client.get('vault_root_token')
+			puts "Vault token from redis: #{VAULT_TOKEN}"
 			Vault.configure do |config|
 				config.address = VAULT_ADDRESS
 				config.token = VAULT_TOKEN
 			end
 
+			# Load configuration from a JSON file
+			config_json = File.read('config.json')
+			config_data = JSON.parse(config_json)
+
+			# Vault Secret Endpoint
+			vault_secret_endpoint = config_data['vault_secret_endpoint']
+
 			begin
-				response = Vault.logical.list('fog-nodes-v1')
+				response = Vault.logical.list(vault_secret_endpoint)
 				fog_nodes = response.map(&:to_s)
 				fog_nodes.each do |mac_address|
-					response = Vault.logical.read("fog-nodes-v1/#{mac_address}")
-					puts "Fog Node with MAC Address #{mac_address}"
-					puts "Password: #{response.data[:data]}"
-					puts "Hashcode: #{response.data[:code_hash]}"
-					puts "---"
+				puts "Retrieving information for Fog Node with MAC Address: #{mac_address}"
+				response = Vault.logical.read("#{vault_secret_endpoint}/#{mac_address}")
+				puts "Fog Node with MAC Address #{mac_address}"
+				puts "Password: #{response.data[:data]}"
+				puts "Hashcode: #{response.data[:code_hash]}"
+				puts "---"
 				end
 			rescue Vault::HTTPClientError => e
 				puts "Error from Vault server: #{e.response.body}"

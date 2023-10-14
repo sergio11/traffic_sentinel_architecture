@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify
 import redis
 from pymongo import MongoClient
 import os
-import requests
+import hvac
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -33,7 +33,7 @@ def get_fog_password():
     if mac_address:
         logger.debug(f"MAC address provided: {mac_address}")
         # Call the _get_node_password function to retrieve the node password
-        node_password = _get_node_password(mac_address)
+        node_password = _get_stored_password(mac_address)
         
         if node_password:
             logger.info(f"Node password retrieved for MAC {mac_address}")
@@ -173,7 +173,18 @@ def get_camera_associations():
     return jsonify(camera_associations), 200
 
 def _get_vault_token():
-    # Retrieve the Vault token from Redis
+    """
+    Helper function to retrieve the Vault token from Redis.
+
+    This function retrieves the Vault root token from Redis, which is used for authentication
+    when making requests to Vault for retrieving secrets.
+
+    Returns:
+        str: The Vault root token.
+        
+    Raises:
+        Exception: If the Vault token is not found in Redis or an error occurs during retrieval.
+    """
     try:
         token = redis_client.get("vault_root_token")
         if token:
@@ -181,21 +192,37 @@ def _get_vault_token():
         else:
             raise Exception("Vault token not found in Redis")
     except Exception as e:
-        raise Exception("Error retrieving Vault token from Redis")
+        raise Exception("Error retrieving Vault token from Redis", e)
+    
 
-def _get_node_password(mac_address):
-    # Retrieve the node password from Vault
+def _get_stored_password(mac_address):
+    """
+    Helper function to retrieve the stored password for a MAC address from Vault.
+
+    This function makes a request to Vault to retrieve the stored password for a MAC address.
+    It requires the Vault root token for authentication.
+
+    Args:
+        mac_address (str): The MAC address of the device.
+        vault_token (str): The Vault root token for authentication.
+
+    Returns:
+        str: The stored password for the MAC address.
+
+    Raises:
+        Exception: If an error occurs during retrieval.
+    """
     try:
-        response = requests.get(
-            f"{VAULT_ADDRESS}/v1/secret/data/users/{mac_address}",
-            headers={"X-Vault-Token": _get_vault_token()}
+        # Remove colons from MAC address
+        mac_address = mac_address.replace(":", "")
+        client = hvac.Client(url=VAULT_ADDRESS, token=_get_vault_token())
+        secret = client.secrets.kv.read_secret(
+            path="fog-nodes-v1/" + mac_address
         )
-        response_json = response.json()
-        node_password = response_json["data"]["password"]
-        return node_password
+        stored_password = secret["data"]["data"]
+        return stored_password
     except Exception as e:
-        print("Error retrieving node password from Vault:", e)
-        return None
+        raise Exception("Error retrieving stored password from Vault", e)
 
 if __name__ == "__main__":
     # Start the Flask application

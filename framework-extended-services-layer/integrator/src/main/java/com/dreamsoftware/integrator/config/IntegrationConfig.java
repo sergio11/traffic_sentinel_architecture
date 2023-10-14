@@ -56,7 +56,7 @@ public class IntegrationConfig {
     @Bean
     public MessageProducerSupport mqttInbound() {
         MqttPahoMessageDrivenChannelAdapter adapter =
-                new MqttPahoMessageDrivenChannelAdapter(mqttBroker, "clientId", mqttTopic);
+                new MqttPahoMessageDrivenChannelAdapter("tcp://" + mqttBroker, "clientId", mqttTopic);
         adapter.setCompletionTimeout(5000);
         adapter.setConverter(new DefaultPahoMessageConverter());
         adapter.setQos(1);
