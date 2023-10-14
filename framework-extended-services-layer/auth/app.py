@@ -2,9 +2,9 @@ import logging
 from flask import Flask, request, jsonify
 import hashlib
 import uuid
-import requests
 import os
 import redis
+import hvac
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -43,6 +43,7 @@ def get_challenge():
         data = request.get_json()
         mac_address = data.get('mac_address')
         vault_token = _get_vault_token()
+        logger.info(f"vault token obtained: {vault_token}")
         stored_password = _get_stored_password(mac_address, vault_token)
         code_hash = _get_code_hash(mac_address, vault_token)
 
@@ -55,7 +56,7 @@ def get_challenge():
         # Log the challenge and generated UUID
         logger.info(f"Challenge generated for MAC {mac_address}: {challenge}")
 
-        return jsonify(challenge=challenge), 200
+        return jsonify(challenge=challenge)
     except Exception as e:
         logger.error(f"Error in 'get_challenge' route: {str(e)}")
         return jsonify(message=str(e)), 500
@@ -159,17 +160,18 @@ def _get_stored_password(mac_address, vault_token):
         Exception: If an error occurs during retrieval.
     """
     try:
-        response = requests.get(
-            f"{VAULT_ADDRESS}/fog-nodes-v1/{mac_address}",
-            headers={"X-Vault-Token": vault_token}
+        # Remove colons from MAC address
+        mac_address = mac_address.replace(":", "")
+        client = hvac.Client(url=VAULT_ADDRESS, token=vault_token)
+        secret = client.secrets.kv.read_secret(
+            path="fog-nodes-v1/" + mac_address
         )
-        response_json = response.json()
-        stored_password = response_json["data"]
+        stored_password = secret["data"]["data"]
         return stored_password
     except Exception as e:
         raise Exception("Error retrieving stored password from Vault", e)
 
-
+    
 def _get_code_hash(mac_address, vault_token):
     """
     Helper function to retrieve the code hash for a MAC address from Vault.
@@ -188,12 +190,13 @@ def _get_code_hash(mac_address, vault_token):
         Exception: If an error occurs during retrieval.
     """
     try:
-        response = requests.get(
-            f"{VAULT_ADDRESS}/fog-nodes-v1/{mac_address}",
-            headers={"X-Vault-Token": vault_token}
+        # Remove colons from MAC address
+        mac_address = mac_address.replace(":", "")
+        client = hvac.Client(url=VAULT_ADDRESS, token=vault_token)
+        secret = client.secrets.kv.read_secret(
+            path="fog-nodes-v1/" + mac_address
         )
-        response_json = response.json()
-        code_hash = response_json["data"]["hashcode"]
+        code_hash = secret["data"]["code_hash"]
         return code_hash
     except Exception as e:
         raise Exception("Error retrieving code hash from Vault", e)
