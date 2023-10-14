@@ -278,7 +278,7 @@ def main():
 
     if authenticate_with_retries(mac_address):
         try:
-            response = requests.get(f"{PROVISIONING_SERVICE_URL}?mac_address={mac_address}")
+            response = requests.get(f"{PROVISIONING_SERVICE_URL}/provision?mac_address={mac_address}")
             if response.status_code == 200:
                 provisioning_data = response.json()
                 camera_url = provisioning_data.get("camera_url")
@@ -287,7 +287,8 @@ def main():
                 capture_thread = Thread(target=frame_capture_loop, args=(camera_url, camera_username, camera_password))
                 capture_thread.start()
             else:
-                logging.error("Error retrieving provisioning data")
+                logging.error(f"Error retrieving provisioning data. Status code: {response.status_code}")
+                logging.error(f"Error response content: {response.text}")
         except Exception as e:
             logging.error("Error during provisioning: %s", e)
     else:
