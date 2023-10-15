@@ -1,0 +1,112 @@
+{
+    "info": {
+        "_postman_id": "6d7a07f5-6a18-4cc9-8a64-0e1ed8e48a7e",
+        "name": "Provision API",
+        "description": "Collection for the Provision API service",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Get Fog Password",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:5001/get-fog-password",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "5001",
+                    "path": ["get-fog-password"],
+                    "query": [
+                        {
+                            "key": "mac_address",
+                            "value": ""
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Provision Camera",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:5001/provision",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "5001",
+                    "path": ["provision"],
+                    "query": [
+                        {
+                            "key": "mac_address",
+                            "value": ""
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Provision Camera Link",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"mac_address\": \"\",\n    \"camera_url\": \"\",\n  \"camera_url_params\": \"\",\n   \"camera_username\": \"\",\n    \"camera_password\": \"\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:5001/provision/link",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "5001",
+                    "path": ["provision", "link"]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Remove Camera Association",
+            "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:5001/provision/remove",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "5001",
+                    "path": ["provision", "remove"],
+                    "query": [
+                        {
+                            "key": "mac_address",
+                            "value": ""
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Get Camera Associations",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:5001/provision/list",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "5001",
+                    "path": ["provision", "list"]
+                }
+            },
+            "response": []
+        }
+    ]
+}

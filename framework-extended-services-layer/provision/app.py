@@ -19,34 +19,50 @@ redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
 VAULT_ADDRESS = os.environ.get("VAULT_ADDRESS", "http://vault:8200")
 # MongoDB Configuration
 MONGO_CONNECTION_URL = os.environ.get("MONGO_CONNECTION_URL", "mongodb://localhost:27017/")
+MONGO_DB = os.environ.get("MONGO_DB", "db")
 mongo_client = MongoClient(MONGO_CONNECTION_URL)
-db = mongo_client["camera_db"]
+db = mongo_client[MONGO_DB]
 
+# Retrieve the stored password for a device based on its MAC address
 @app.route("/get-fog-password", methods=["GET"])
 def get_fog_password():
     logger.info("Received GET request for get_fog_password")
-    
+
     # Get MAC address from the request's query parameters
     mac_address = request.args.get("mac_address")
-    
+
     if mac_address:
         logger.debug(f"MAC address provided: {mac_address}")
         # Call the _get_node_password function to retrieve the node password
         node_password = _get_stored_password(mac_address)
-        
+
         if node_password:
             logger.info(f"Node password retrieved for MAC {mac_address}")
-            # Return the node password as JSON response
-            return jsonify({"fog_password": node_password}), 200
+            # Return a JSON response with a success status
+            response = {
+                "status": "success",
+                "message": "Node password retrieved successfully",
+                "fog_password": node_password
+            }
+            return jsonify(response), 200
         else:
             logger.warning("Node password not found")
-            # Return a 404 response if node password is not found
-            return jsonify({"message": "Node password not found"}), 404
+            # Return a JSON response with an error status and message
+            response = {
+                "status": "error",
+                "message": "Node password not found"
+            }
+            return jsonify(response), 404
     else:
         logger.error("MAC address not provided in request")
-        # Return a 400 response if MAC address is not provided
-        return jsonify({"message": "MAC address not provided"}), 400
+        # Return a JSON response with a bad request status and message
+        response = {
+            "status": "error",
+            "message": "MAC address not provided in the request"
+        }
+        return jsonify(response), 400
 
+# Provision camera information based on the MAC address
 @app.route("/provision", methods=["GET"])
 def provision_camera():
     logger.info("Received GET request for provision_camera")
@@ -57,7 +73,7 @@ def provision_camera():
     if mac_address:
         logger.debug(f"MAC address provided: {mac_address}")
         # Retrieve camera information from the MongoDB database
-        camera_info = db.cameras.find_one({"mac_address": mac_address})
+        camera_info = db.provisioning.find_one({"mac_address": mac_address})
 
         if camera_info:
             logger.info(f"Camera info found for MAC {mac_address}")
@@ -75,24 +91,43 @@ def provision_camera():
                     # Remove the session key after successful provisioning
                     redis_client.delete(session_id)
                     response = {
+                        "status": "success",
+                        "message": "Camera provisioned successfully",
                         "camera_url": camera_url,
                         "camera_username": camera_username,
-                        "camera_password": camera_password,
+                        "camera_password": camera_password
                     }
                     return jsonify(response), 200
                 else:
                     logger.warning("Invalid session ID")
-                    return jsonify(message="Invalid session ID"), 401
+                    response = {
+                        "status": "error",
+                        "message": "Invalid session ID"
+                    }
+                    return jsonify(response), 401
             else:
                 logger.error("Session ID not provided")
-                return jsonify(message="Session ID not provided"), 400
+                response = {
+                    "status": "error",
+                    "message": "Session ID not provided"
+                }
+                return jsonify(response), 400
         else:
-            logger.warning(f"MAC address {mac_address} not found in database")
-            return jsonify(message="MAC address not found in database"), 404
+            logger.warning(f"MAC address {mac_address} not found in the database")
+            response = {
+                "status": "error",
+                "message": "MAC address not found in the database"
+            }
+            return jsonify(response), 404
     else:
-        logger.error("MAC address not provided in request")
-        return jsonify(message="MAC address not provided"), 400
+        logger.error("MAC address not provided in the request")
+        response = {
+            "status": "error",
+            "message": "MAC address not provided in the request"
+        }
+        return jsonify(response), 400
 
+# Provision a new camera association
 @app.route("/provision/link", methods=["POST"])
 def provision_camera_link():
     logger.info("Received POST request for provision_camera_link")
@@ -102,75 +137,102 @@ def provision_camera_link():
 
     mac_address = data.get("mac_address")
     camera_url = data.get("camera_url")
+    camera_url_params = data.get("camera_url_params")
     camera_username = data.get("camera_username")
     camera_password = data.get("camera_password")
 
-    if not mac_address or not camera_url or not camera_username or not camera_password:
+    if not mac_address or not camera_url or not camera_url_params:
         logger.error("Missing required data in request body")
-        return jsonify(message="Missing required data"), 400
+        response = {
+            "status": "error",
+            "message": "Missing required data"
+        }
+        return jsonify(response), 400
 
-    existing_camera = db.cameras.find_one({"mac_address": mac_address})
+    existing_camera = db.provisioning.find_one({"mac_address": mac_address})
     if existing_camera:
         logger.warning("MAC address already exists in the database")
-        return jsonify(message="MAC address already exists"), 409
+        response = {
+            "status": "error",
+            "message": "MAC address already exists in the database"
+        }
+        return jsonify(response), 409
 
     # Insert camera information into the MongoDB database
-    db.cameras.insert_one(
+    db.provisioning.insert_one(
         {
             "mac_address": mac_address,
             "camera_url": camera_url,
+            "camera_url_params": camera_url_params,
             "camera_username": camera_username,
             "camera_password": camera_password,
         }
     )
 
     logger.info(f"Camera provisioned successfully for MAC {mac_address}")
-    return jsonify(message="Camera provisioned successfully"), 201
+    response = {
+        "status": "success",
+        "message": "Camera provisioned successfully"
+    }
+    return jsonify(response), 201
 
+# Remove a camera association based on the MAC address
 @app.route("/provision/remove", methods=["DELETE"])
 def remove_camera_association():
     logger.info("Received DELETE request for remove_camera_association")
-    
+
     # Get MAC address from the request's query parameters
     mac_address = request.args.get("mac_address")
+
+    # Initialize the response dictionary
+    response = {"status": "success", "message": "", "data": {}}
 
     if mac_address:
         logger.debug(f"MAC address provided: {mac_address}")
         # Check if the MAC address exists in the MongoDB database
-        camera_info = db.cameras.find_one({"mac_address": mac_address})
+        camera_info = db.provisioning.find_one({"mac_address": mac_address})
 
         if camera_info:
             # Delete the camera association from the MongoDB database
-            db.cameras.delete_one({"mac_address": mac_address})
+            db.provisioning.delete_one({"mac_address": mac_address})
             logger.info(f"Camera association removed for MAC {mac_address}")
-            return jsonify(message="Camera association removed"), 200
+            response["message"] = "Camera association removed"
+            return jsonify(response), 200
         else:
             logger.warning(f"MAC address {mac_address} not found in database")
-            return jsonify(message="MAC address not found in database"), 404
+            response["status"] = "error"
+            response["message"] = "MAC address not found in the database"
+            return jsonify(response), 404
     else:
         logger.error("MAC address not provided in request")
-        return jsonify(message="MAC address not provided"), 400
+        response["status"] = "error"
+        response["message"] = "MAC address not provided"
+        return jsonify(response), 400
 
+
+# Get a list of all camera associations
 @app.route("/provision/list", methods=["GET"])
 def get_camera_associations():
     logger.info("Received GET request for get_camera_associations")
-    
-    camera_associations = []
+
+    # Initialize the response dictionary
+    response = {"status": "success", "message": "Camera associations retrieved successfully", "data": []}
 
     # Retrieve all camera associations from the MongoDB database
-    cursor = db.cameras.find({})
+    cursor = db.provisioning.find({})
     for camera_info in cursor:
-        camera_associations.append(
-            {
-                "mac_address": camera_info.get("mac_address"),
-                "camera_url": camera_info.get("camera_url"),
-                "camera_username": camera_info.get("camera_username"),
-                "camera_password": camera_info.get("camera_password"),
-            }
-        )
+        camera_associations = {
+            "mac_address": camera_info.get("mac_address"),
+            "camera_url": camera_info.get("camera_url"),
+            "camera_url_params": camera_info.get("camera_url_params"),
+            "camera_username": camera_info.get("camera_username"),
+            "camera_password": camera_info.get("camera_password"),
+        }
+        response["data"].append(camera_associations)
 
-    return jsonify(camera_associations), 200
+    return jsonify(response), 200
 
+# Helper function to retrieve the Vault token from Redis
 def _get_vault_token():
     """
     Helper function to retrieve the Vault token from Redis.
