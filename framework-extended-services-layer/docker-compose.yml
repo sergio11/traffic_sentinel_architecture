@@ -8,10 +8,6 @@ services:
     container_name: auth-service
     env_file:
       - ./.env
-    environment:
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - VAULT_ADDRESS=${VAULT_ADDRESS}
     ports:
       - "5000:5000"  # Map container port 5000 to host port 5000
     networks:
@@ -23,13 +19,6 @@ services:
     container_name: notifier-service
     env_file:
       - ./.env
-    environment:
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - REDIS_EXPIRATION_CHANNEL=${REDIS_EXPIRATION_CHANNEL}
-      - MQTT_BROKER=${MQTT_BROKER}
-      - MQTT_PORT=${MQTT_PORT}
-      - MQTT_REAUTH_TOPIC=${MQTT_REAUTH_TOPIC}
     networks:
       - smart-highway-net
 
@@ -39,11 +28,6 @@ services:
     container_name: provision-service
     env_file:
       - ./.env
-    environment:
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - MONGO_HOST=${MONGO_HOST}
-      - MONGO_PORT=${MONGO_PORT}
     ports:
       - "5001:5001"  # Map container port 5001 to host port 5001
     networks:
@@ -55,13 +39,6 @@ services:
     container_name: integrator-service
     env_file:
       - ./.env
-    environment:
-      - MQTT_BROKER_USERNAME=${MQTT_BROKER_USERNAME}
-      - MQTT_BROKER_PASSWORD=${MQTT_BROKER_PASSWORD}
-      - MQTT_BROKER=${MQTT_BROKER}
-      - MQTT_TOPIC=${MQTT_TOPIC}
-      - KAFKA_BROKER=${KAFKA_BROKER}
-      - KAFKA_TOPIC=${KAFKA_TOPIC}
     networks:
       - smart-highway-net
 
