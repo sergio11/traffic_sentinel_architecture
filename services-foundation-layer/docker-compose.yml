@@ -12,53 +12,8 @@ volumes:
     driver: local
   redis-data:
     driver: local
-  mongo_data:
-    driver: local
 
 services:
-
-# MongoDB is a free and open-source cross-platform document-oriented database program
-  mongo:
-    image: mongo
-    container_name: mongo
-    env_file:
-      - .env
-    restart: on-failure
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
-      - MONGO_INITDB_DATABASE=${MONGO_DB}
-    networks:
-      - smart-highway-net
-
-
-  # Web-based MongoDB admin interface, written with Node.js and express
-  mongo-express:
-    image: mongo-express
-    container_name: mongo-express
-    restart: on-failure
-    env_file:
-      - .env
-    environment:
-      - ME_CONFIG_MONGODB_SERVER=mongo
-      - ME_CONFIG_MONGODB_PORT=27017
-      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
-      - ME_CONFIG_MONGODB_AUTH_DATABASE=admin
-      - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGO_ROOT_USER}
-      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGO_ROOT_PASSWORD}
-      - ME_CONFIG_BASICAUTH_USERNAME=${MONGOEXPRESS_LOGIN}
-      - ME_CONFIG_BASICAUTH_PASSWORD=${MONGOEXPRESS_PASSWORD}
-    depends_on:
-      - mongo
-    links:
-      - mongo
-    ports:
-      - "8083:8081"
-    networks:
-      - smart-highway-net
-
   # Apache ZooKeeper is an effort to develop and maintain an open-source server which enables highly reliable distributed coordination.
   zookeeper:
     image: confluentinc/cp-zookeeper
