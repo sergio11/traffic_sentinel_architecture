@@ -71,7 +71,7 @@ def provision_camera():
     mac_address = request.args.get("mac_address")
 
     if mac_address:
-        logger.debug(f"MAC address provided: {mac_address}")
+        logger.info(f"MAC address provided: {mac_address}")
         # Retrieve camera information from the MongoDB database
         camera_info = db.provisioning.find_one({"mac_address": mac_address})
 
@@ -79,21 +79,26 @@ def provision_camera():
             logger.info(f"Camera info found for MAC {mac_address}")
             # Extract camera details
             camera_url = camera_info.get("camera_url")
+            camera_url_params = camera_info.get("camera_url_params")
             camera_username = camera_info.get("camera_username")
             camera_password = camera_info.get("camera_password")
 
             # Check the X-Session-ID header for authentication
             session_id = request.headers.get("X-Session-ID")
             if session_id:
-                logger.debug(f"Session ID provided: {session_id}")
-                if redis_client.exists(session_id):
-                    logger.info(f"Session ID {session_id} exists in Redis")
-                    # Remove the session key after successful provisioning
-                    redis_client.delete(session_id)
+                logger.info(f"Session ID provided: {session_id}")
+                redis_session_key = f"{mac_address}_session"
+                stored_session_id = redis_client.get(redis_session_key)
+
+                if stored_session_id and stored_session_id.decode("utf-8") == session_id:
+                    logger.info(f"Session ID {session_id} matches the one stored in Redis")
+                    # Remove the stored session key after successful provisioning
+                    redis_client.delete(redis_session_key)
                     response = {
                         "status": "success",
                         "message": "Camera provisioned successfully",
                         "camera_url": camera_url,
+                        "camera_url_params": camera_url_params,
                         "camera_username": camera_username,
                         "camera_password": camera_password
                     }

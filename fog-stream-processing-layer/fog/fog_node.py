@@ -99,16 +99,19 @@ def authenticate_chap(mac_address, client_response):
         client_response (str): Client's response to the challenge.
 
     Returns:
-        bool: True if authentication is successful, False otherwise.
+        str: Session ID if authentication is successful, None otherwise.
     """
     try:
+        global session_id  # Declare the global variable
         response = requests.post(f"{AUTH_SERVICE_URL}/authenticate", json={"mac_address": mac_address, "client_response": client_response})
         if response.status_code == 200:
-            return True
-        return False
+            auth_data = response.json()
+            session_id = auth_data.get("session_id")  # Retrieve the session_id from the response
+            return session_id
+        return None
     except Exception as e:
         logging.error("Error during authentication: %s", e)
-        return False
+        return None
 
 # Callback function when the MQTT client connects to the broker
 def on_connect(client, userdata, flags, rc):
@@ -156,44 +159,50 @@ def capture_and_send_frame(frame_path, timestamp, camera_url, mac_address):
         camera_url (str): URL of the camera feed.
         mac_address (str): MAC address of the device.
     """
+    frame_path = os.path.join(FRAMES_OUTPUT_DIRECTORY, f"frame_{timestamp}.jpg")
+    capture_command = [
+        "ffmpeg",
+        "-i", camera_url,
+        "-vf", "fps=1",
+        "-frames:v", "1",
+        "-f", "image2",
+        frame_path
+    ]
     try:
-        capture_command = [
-            "ffmpeg",
-            "-rtsp_transport", "tcp",  # Use TCP for RTSP streaming
-            "-i", camera_url,
-            "-vf", "fps=1",  # Capture one frame per second
-            "-frames:v", "1",  # capture only one frame
-            "-f", "image2",
-            frame_path
-        ]
-        subprocess.run(capture_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        with open(frame_path, "rb") as frame_file:
-            frame_data = frame_file.read()
-            base64_frame = base64.b64encode(frame_data).decode('utf-8')
-            payload = {
-                "mac_address": mac_address,
-                "timestamp": timestamp,
-                "frame_data": base64_frame
-            }
-            client.publish(MQTT_TOPIC, payload=str(payload), qos=0)
-            logging.info("Frame sent to MQTT")
-        os.remove(frame_path)
+        result = subprocess.run(capture_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode == 0:
+            if os.path.exists(frame_path):
+                with open(frame_path, "rb") as frame_file:
+                    frame_data = frame_file.read()
+                    base64_frame = base64.b64encode(frame_data).decode('utf-8')
+                    payload = {
+                        "mac_address": mac_address,
+                        "timestamp": timestamp,
+                        "frame_data": base64_frame
+                    }
+                    client.publish(MQTT_TOPIC, payload=str(payload), qos=0)
+                    logging.info("Frame sent to MQTT - MAC Address: %s, Timestamp: %s, Frame Size: %s bytes", mac_address, timestamp, len(base64_frame))
+                    os.remove(frame_path)  # Remove the file after sending
+            else:
+                logging.error("The image file was not found at %s", frame_path)
+        else:
+            logging.error("Error capturing the image. ffmpeg output: %s", result.stderr)
     except Exception as e:
         logging.error("Error: %s", e)
 
 # Function for the frame capture loop
-def frame_capture_loop(camera_url, mac_address):
+def frame_capture_loop(mac_address, camera_url):
     """
     Frame capture loop.
 
     Args:
-        camera_url (str): URL of the camera feed.
         mac_address (str): MAC address of the device.
+        camera_url (str): URL of the camera feed.
     """
     while True:
         timestamp = str(int(time.time()))
         frame_filename = f"frame_{timestamp}.jpg"
-        frame_path = os.path.join("output_directory", frame_filename)
+        frame_path = os.path.join(FRAMES_OUTPUT_DIRECTORY, frame_filename)
         capture_and_send_frame(frame_path, timestamp, camera_url, mac_address)
         time.sleep(1)
 
@@ -206,13 +215,13 @@ def authenticate(mac_address):
         mac_address (str): MAC address of the device.
 
     Returns:
-        bool: True if authentication is successful, False otherwise.
+        str: Session ID if authentication is successful, None otherwise.
     """
     try:
         code_file_path = os.path.abspath(__file__)
         code_hash = calculate_hash(code_file_path)
         logging.info("Hash value of this code: %s", code_hash)  # Log code hash
-        
+
         challenge = get_challenge(mac_address)
         if challenge:
             password_response = requests.get(f"{PROVISIONING_SERVICE_URL}/get-fog-password?mac_address={mac_address}")
@@ -221,9 +230,10 @@ def authenticate(mac_address):
                 node_password = password_data.get("fog_password")
                 if node_password:
                     client_response = hashlib.sha256((node_password + challenge + code_hash).encode()).hexdigest()
-                    if authenticate_chap(mac_address, client_response):
-                        logging.info("Device authenticated successfully")  # Log successful authentication
-                        return True
+                    session_id = authenticate_chap(mac_address, client_response)
+                    if session_id:
+                        logging.info("Device authenticated successfully with Session ID: %s", session_id)
+                        return session_id
                     else:
                         logging.error("Authentication failed using CHAP")
                 else:
@@ -234,7 +244,7 @@ def authenticate(mac_address):
             logging.error("Error getting challenge")
     except Exception as e:
         logging.error("Error during reauthentication: %s", e)  # Log exception
-        return False
+        return None
 
     
 # Function to authenticate the device with retries
@@ -246,15 +256,17 @@ def authenticate_with_retries(mac_address):
         mac_address (str): MAC address of the device.
 
     Returns:
-        bool: True if authentication is successful, False otherwise.
+        str: Session ID if authentication is successful, None otherwise.
     """
     retries = 0
     while retries < MAX_RETRIES:
-        if authenticate(mac_address):
-            return True
-        time.sleep(RETRY_DELAY)  # Espera antes del siguiente intento
+        session_id = authenticate(mac_address)
+        if session_id:
+            return session_id
+        time.sleep(RETRY_DELAY)
         retries += 1
-    return False
+    return None
+
     
 # Initialize the MQTT client and set up callbacks
 client = mqtt.Client()
@@ -276,15 +288,27 @@ def main():
     if not os.path.exists(FRAMES_OUTPUT_DIRECTORY):
         os.makedirs(FRAMES_OUTPUT_DIRECTORY)
 
-    if authenticate_with_retries(mac_address):
+    session_id = authenticate_with_retries(mac_address)
+    if session_id:
         try:
-            response = requests.get(f"{PROVISIONING_SERVICE_URL}/provision?mac_address={mac_address}")
+            headers = {
+                "X-Session-Id": session_id
+            }
+            response = requests.get(f"{PROVISIONING_SERVICE_URL}/provision?mac_address={mac_address}", headers=headers)
             if response.status_code == 200:
                 provisioning_data = response.json()
                 camera_url = provisioning_data.get("camera_url")
+                camera_url_params = provisioning_data.get("camera_url_params")
                 camera_username = provisioning_data.get("camera_username")
                 camera_password = provisioning_data.get("camera_password")
-                capture_thread = Thread(target=frame_capture_loop, args=(camera_url, camera_username, camera_password))
+                # Combine camera_url and camera_url_params
+                full_camera_url = f"{camera_url}?{camera_url_params}"
+                # Add username and password to the URL if available
+                if camera_username and camera_password:
+                    credentials = f"{camera_username}:{camera_password}"
+                    base64_credentials = base64.b64encode(credentials.encode()).decode('utf-8')
+                    full_camera_url = f"{full_camera_url}@{base64_credentials}"
+                capture_thread = Thread(target=frame_capture_loop, args=(mac_address, full_camera_url))
                 capture_thread.start()
             else:
                 logging.error(f"Error retrieving provisioning data. Status code: {response.status_code}")
@@ -293,6 +317,7 @@ def main():
             logging.error("Error during provisioning: %s", e)
     else:
         logging.error("Error authenticating fog node with MAC %s", mac_address)
+
 
 # Entry point of the script
 if __name__ == "__main__":
