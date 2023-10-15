@@ -18,9 +18,8 @@ redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
 
 VAULT_ADDRESS = os.environ.get("VAULT_ADDRESS", "http://vault:8200")
 # MongoDB Configuration
-MONGO_HOST = os.environ.get("MONGO_HOST", "localhost")
-MONGO_PORT = int(os.environ.get("MONGO_PORT", 27017))
-mongo_client = MongoClient(f"mongodb://{MONGO_HOST}:{MONGO_PORT}/")
+MONGO_CONNECTION_URL = os.environ.get("MONGO_CONNECTION_URL", "mongodb://localhost:27017/")
+mongo_client = MongoClient(MONGO_CONNECTION_URL)
 db = mongo_client["camera_db"]
 
 @app.route("/get-fog-password", methods=["GET"])

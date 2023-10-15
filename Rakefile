@@ -236,6 +236,35 @@ namespace :SmartHighwayNet do
 		end
 	end
 
+	namespace :DataStorageLayer do
+		desc "Tasks related to the Data Storage Layer"
+		# Define tasks related to the Data Storage Layer
+
+		desc "Check data storage layer deployment file"	
+		task :check_deployment_file do
+			puts "Check data storage layer deployment file ..."
+			raise "Deployment file not found, please check availability" unless File.file?("./data-storage-layer/docker-compose.yml")
+			puts "Platform Deployment File OK!"
+		end
+
+		desc "Start data storage layer containers"
+		task :start => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Start data storage layer containers"
+			puts `docker-compose -f ./data-storage-layer/docker-compose.yml up -d 2>&1`
+		end
+
+		desc "Stop data storage layer container"
+		task :stop => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Stop data storage layer container"
+			puts `docker-compose -f ./data-storage-layer/docker-compose.yml stop 2>&1`
+		end
+
+		desc "Deploy data storage layer container"
+		task :deploy => [ :check_docker_task, :login, :check_deployment_file, :cleaning_environment_task, :start  ] do
+			puts "Deploy data storage layer container"
+		end
+	end
+
 
 	namespace :StreamProcessingLayer do
 		desc "Tasks related to the Stream Processing Layer"

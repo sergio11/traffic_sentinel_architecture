@@ -7,7 +7,7 @@ services:
     image: ssanchez11/smart_highway_net_job_manager_flink:0.0.1
     container_name: job-manager-flink
     volumes:
-    - ./flink/jobs:/opt/flink/jobs  # Map local jobs directory to the container
+      - ./jobs:/opt/flink/jobs  # Map local jobs directory to the container
     ports:
       - "8085:8081"  # Map container port 8081 to host port 8085
     command: jobmanager  # Run the job manager
