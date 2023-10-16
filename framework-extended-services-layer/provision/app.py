@@ -237,6 +237,42 @@ def get_camera_associations():
 
     return jsonify(response), 200
 
+
+@app.route("/update-gps-info", methods=["POST"])
+def update_gps_info():
+    logger.info("Received POST request for update_gps_info")
+    
+    data = request.get_json()
+
+    mac_address = data.get("mac_address")
+    gps_info = data.get("gps_info")
+
+    if not mac_address or not gps_info:
+        logger.error("Missing required data in request body")
+        response = {
+            "status": "error",
+            "message": "Missing required data"
+        }
+        return jsonify(response), 400
+
+    # Update the MongoDB document with the new GPS information
+    result = db.provisioning.update_one({"mac_address": mac_address}, {"$set": {"gps_info": gps_info}})
+    
+    if result.modified_count == 1:
+        logger.info(f"GPS information updated for MAC {mac_address}")
+        response = {
+            "status": "success",
+            "message": "GPS information updated successfully"
+        }
+        return jsonify(response), 200
+    else:
+        logger.warning(f"MAC address {mac_address} not found in the database")
+        response = {
+            "status": "error",
+            "message": "MAC address not found in the database"
+        }
+        return jsonify(response), 404
+
 # Helper function to retrieve the Vault token from Redis
 def _get_vault_token():
     """
