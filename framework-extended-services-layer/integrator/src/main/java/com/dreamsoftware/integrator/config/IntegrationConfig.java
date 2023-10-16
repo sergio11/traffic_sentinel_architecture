@@ -13,14 +13,16 @@ import org.springframework.integration.config.EnableIntegration;
 import org.springframework.integration.core.GenericHandler;
 import org.springframework.integration.core.GenericSelector;
 import org.springframework.integration.dsl.IntegrationFlow;
+import org.springframework.integration.dsl.Transformers;
 import org.springframework.integration.endpoint.MessageProducerSupport;
 import org.springframework.integration.kafka.dsl.Kafka;
 import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
 import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
 import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.support.GenericMessage;
 
+import java.util.Map;
 import java.util.Objects;
 
 @Configuration
@@ -64,9 +66,10 @@ public class IntegrationConfig {
     }
 
     @Bean
-    public GenericHandler<Message<?>> messageHandler() {
+    public GenericHandler<GenericMessage<Map<String, String>>> messageHandler() {
         return (message, headers) -> {
-            String macAddress = headers.get("mqtt_topic", String.class);
+            Map<String, String> payload = message.getPayload();
+            String macAddress = payload.get("mac_address");
             if (hasSession(macAddress)) {
                 // Process the MQTT message here
                 return message;
@@ -80,11 +83,12 @@ public class IntegrationConfig {
         return IntegrationFlow.from(mqttInbound())
                 .channel(mqttInputChannel())
                 .handle(messageHandler())
-                .filter((GenericSelector<Message<?>>) Objects::nonNull)
+                .filter((GenericSelector<GenericMessage<Map<String, String>>>) Objects::nonNull)
+                .transform(Transformers.toJson()) // Transform the message to JSON format
                 .channel(kafkaOutboundChannel())
                 .handle(Kafka.outboundChannelAdapter(kafkaProducerFactory)
-                        .messageKey(m -> m.getHeaders().get("mqtt_topic"))
-                        .topicExpression("headers['kafka_topic']"))
+                        .messageKey("mac_address") // Use the 'mac_address' as the message key
+                        .topicExpression("'iot-camera-frames'")) // Specify the Kafka topic
                 .get();
     }
 
