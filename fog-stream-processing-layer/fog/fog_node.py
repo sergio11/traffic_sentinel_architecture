@@ -2,6 +2,7 @@ import os
 import subprocess
 import time
 import paho.mqtt.client as mqtt
+import socket
 import base64
 import requests
 import hashlib
@@ -48,6 +49,28 @@ def calculate_hash(file_path):
     except Exception as e:
         logging.error("Error calculating hash: %s", e)
         return None
+
+def get_host_ip():
+    try:
+        # Get the local host's IP address
+        host_name = socket.gethostname()
+        host_ip = socket.gethostbyname(host_name)
+        return host_ip
+    except Exception as e:
+        print("Failed to obtain the IP address:", e)
+        return None
+
+def get_gps_info(ip):
+    if ip:
+        try:
+            # Use the "ipinfo.io" geolocation service to retrieve GPS information
+            url = f"https://ipinfo.io/{ip}/json"
+            response = requests.get(url)
+            data = response.json()
+            return data
+        except Exception as e:
+            print("Failed to obtain GPS information:", e)
+    return None
 
 # Function to obtain the MAC address of the device
 def get_mac_address():
@@ -267,6 +290,54 @@ def authenticate_with_retries(mac_address):
         retries += 1
     return None
 
+# Function to perform provisioning
+def perform_provisioning(mac_address):
+    session_id = authenticate_with_retries(mac_address)
+    if session_id:
+        return get_provisioning_data(session_id)
+    else:
+        logging.error("Error authenticating fog node with MAC %s", mac_address)
+        return None
+
+# Function to get provisioning data
+def get_provisioning_data(session_id):
+    headers = {
+        "X-Session-Id": session_id
+    }
+    response = requests.get(f"{PROVISIONING_SERVICE_URL}/provision?mac_address={mac_address}", headers=headers)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        logging.error(f"Error retrieving provisioning data. Status code: {response.status_code}")
+        logging.error(f"Error response content: {response.text}")
+        return None
+
+# Function to start frame capture thread
+def start_frame_capture(mac_address, full_camera_url):
+    capture_thread = Thread(target=frame_capture_loop, args=(mac_address, full_camera_url))
+    capture_thread.start()
+
+# Function to send GPS information
+def send_gps_information():
+    ip = get_host_ip()
+    if ip:
+        print(f"Host's IP address: {ip}")
+        gps_info = get_gps_info(ip)
+        if gps_info:
+            print("GPS Information:")
+            print(f"Location: {gps_info.get('city')}, {gps_info.get('region')}, {gps_info.get('country')}")
+            print(f"Latitude/Longitude: {gps_info.get('loc')}")
+            # Send GPS information to the /update-gps-info endpoint
+            response = requests.post(f"{PROVISIONING_SERVICE_URL}/update-gps-info", json={"mac_address": mac_address, "gps_info": gps_info})
+            if response.status_code == 200:
+                logging.info("GPS information sent successfully.")
+            else:
+                logging.error(f"Error sending GPS information. Status code: {response.status_code}")
+        else:
+            print("Failed to obtain GPS information.")
+    else:
+        print("Failed to obtain the host's IP address")
+
     
 # Initialize the MQTT client and set up callbacks
 client = mqtt.Client()
@@ -288,36 +359,21 @@ def main():
     if not os.path.exists(FRAMES_OUTPUT_DIRECTORY):
         os.makedirs(FRAMES_OUTPUT_DIRECTORY)
 
-    session_id = authenticate_with_retries(mac_address)
-    if session_id:
-        try:
-            headers = {
-                "X-Session-Id": session_id
-            }
-            response = requests.get(f"{PROVISIONING_SERVICE_URL}/provision?mac_address={mac_address}", headers=headers)
-            if response.status_code == 200:
-                provisioning_data = response.json()
-                camera_url = provisioning_data.get("camera_url")
-                camera_url_params = provisioning_data.get("camera_url_params")
-                camera_username = provisioning_data.get("camera_username")
-                camera_password = provisioning_data.get("camera_password")
-                # Combine camera_url and camera_url_params
-                full_camera_url = f"{camera_url}?{camera_url_params}"
-                # Add username and password to the URL if available
-                if camera_username and camera_password:
-                    credentials = f"{camera_username}:{camera_password}"
-                    base64_credentials = base64.b64encode(credentials.encode()).decode('utf-8')
-                    full_camera_url = f"{full_camera_url}@{base64_credentials}"
-                capture_thread = Thread(target=frame_capture_loop, args=(mac_address, full_camera_url))
-                capture_thread.start()
-            else:
-                logging.error(f"Error retrieving provisioning data. Status code: {response.status_code}")
-                logging.error(f"Error response content: {response.text}")
-        except Exception as e:
-            logging.error("Error during provisioning: %s", e)
-    else:
-        logging.error("Error authenticating fog node with MAC %s", mac_address)
-
+    provisioning_data = perform_provisioning(mac_address)
+    if provisioning_data:
+        camera_url = provisioning_data.get("camera_url")
+        camera_url_params = provisioning_data.get("camera_url_params")
+        camera_username = provisioning_data.get("camera_username")
+        camera_password = provisioning_data.get("camera_password")
+        # Combine camera_url and camera_url_params
+        full_camera_url = f"{camera_url}?{camera_url_params}"
+        # Add username and password to the URL if available
+        if camera_username and camera_password:
+            credentials = f"{camera_username}:{camera_password}"
+            base64_credentials = base64.b64encode(credentials.encode()).decode('utf-8')
+            full_camera_url = f"{full_camera_url}@{base64_credentials}"
+        start_frame_capture(mac_address, full_camera_url)
+        send_gps_information()
 
 # Entry point of the script
 if __name__ == "__main__":
