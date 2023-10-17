@@ -1,6 +1,11 @@
 package com.dreamsoftware.integrator.config;
 
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,24 +16,21 @@ import org.springframework.integration.annotation.IntegrationComponentScan;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.config.EnableIntegration;
 import org.springframework.integration.core.GenericHandler;
-import org.springframework.integration.core.GenericSelector;
 import org.springframework.integration.dsl.IntegrationFlow;
-import org.springframework.integration.dsl.Transformers;
 import org.springframework.integration.endpoint.MessageProducerSupport;
 import org.springframework.integration.kafka.dsl.Kafka;
 import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
 import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.messaging.MessageChannel;
-import org.springframework.messaging.support.GenericMessage;
-
-import java.util.Map;
-import java.util.Objects;
+import com.dreamsoftware.integrator.dto.CameraFogFrameDTO;
 
 @Configuration
 @EnableIntegration
 @IntegrationComponentScan
 public class IntegrationConfig {
+
+    private static final Logger logger = LoggerFactory.getLogger(IntegrationConfig.class);
 
     @Value("${MQTT_BROKER}")
     private String mqttBroker;
@@ -37,13 +39,10 @@ public class IntegrationConfig {
     private String mqttTopic;
 
     @Autowired
-    private StringRedisTemplate redisTemplate;
+    private ObjectMapper objectMapper;
 
-    @PostConstruct
-    public void logEnvironmentVariables() {
-        System.out.println("MQTT Broker: " + mqttBroker);
-        System.out.println("MQTT Topic: " + mqttTopic);
-    }
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
     @Bean
     public MessageChannel mqttInputChannel() {
@@ -66,15 +65,23 @@ public class IntegrationConfig {
     }
 
     @Bean
-    public GenericHandler<GenericMessage<Map<String, String>>> messageHandler() {
-        return (message, headers) -> {
-            Map<String, String> payload = message.getPayload();
-            String macAddress = payload.get("mac_address");
-            if (hasSession(macAddress)) {
-                // Process the MQTT message here
-                return message;
+    public GenericHandler<String> messageHandler() {
+        return (payload, headers) -> {
+            try {
+                logger.info("Received JSON: " + payload);
+                CameraFogFrameDTO cameraFogFrameDTO = objectMapper.readValue(payload.replaceAll("'", "\""), CameraFogFrameDTO.class);
+                String macAddress = cameraFogFrameDTO.getMacAddress();
+                if (hasSession(macAddress)) {
+                    logger.info("CameraFogFrameDTO mac: " + macAddress + "  allowed");
+                    return cameraFogFrameDTO;
+                } else {
+                    logger.info("MAC: " + macAddress + " has not a valid session, payload was discarted");
+                }
+            } catch (JsonProcessingException e) {
+                logger.error("Error parsing JSON: " + e.getMessage(), e);
+                return null;
             }
-            return null; // Discard messages without a session
+            return null;
         };
     }
 
@@ -83,16 +90,20 @@ public class IntegrationConfig {
         return IntegrationFlow.from(mqttInbound())
                 .channel(mqttInputChannel())
                 .handle(messageHandler())
-                .filter((GenericSelector<GenericMessage<Map<String, String>>>) Objects::nonNull)
-                .transform(Transformers.toJson()) // Transform the message to JSON format
-                .channel(kafkaOutboundChannel())
                 .handle(Kafka.outboundChannelAdapter(kafkaProducerFactory)
-                        .messageKey("mac_address") // Use the 'mac_address' as the message key
-                        .topicExpression("'iot-camera-frames'")) // Specify the Kafka topic
+                        .messageKey("mac_address")
+                        .topic("iot-camera-frames"))
                 .get();
     }
 
     private boolean hasSession(String macAddress) {
+        logger.info("check session key: " + macAddress + "_session");
         return Boolean.TRUE.equals(redisTemplate.hasKey(macAddress + "_session"));
+    }
+
+    @PostConstruct
+    public void logEnvironmentVariables() {
+        System.out.println("MQTT Broker: " + mqttBroker);
+        System.out.println("MQTT Topic: " + mqttTopic);
     }
 }
