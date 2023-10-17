@@ -142,7 +142,7 @@ def authenticate():
                 # Store authenticated session UUID in Redis with a 1-hour expiration
                 redis_session_key = f"{mac_address}_session"
                 redis_client.set(redis_session_key, session_uuid, ex=3600)
-                logger.info(f"Authentication successful for MAC {mac_address}. Session ID: {session_uuid}")
+                logger.info(f"Authentication successful for MAC {mac_address}. Session ID: {session_uuid} with session key: {redis_session_key}")
                 return jsonify(message='Authentication successful', session_id=session_uuid), 200
             else:
                 logger.info(f"Authentication failed for MAC {mac_address}")
