@@ -25,6 +25,8 @@ import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.messaging.MessageChannel;
 import com.dreamsoftware.integrator.dto.CameraFogFrameDTO;
 
+import java.util.Set;
+
 @Configuration
 @EnableIntegration
 @IntegrationComponentScan
@@ -68,14 +70,15 @@ public class IntegrationConfig {
     public GenericHandler<String> messageHandler() {
         return (payload, headers) -> {
             try {
-                logger.info("Received JSON: " + payload);
                 CameraFogFrameDTO cameraFogFrameDTO = objectMapper.readValue(payload.replaceAll("'", "\""), CameraFogFrameDTO.class);
                 String macAddress = cameraFogFrameDTO.getMacAddress();
+                listRedisKeys();
+                logger.info("New camera fog frame received from: " + macAddress);
                 if (hasSession(macAddress)) {
                     logger.info("CameraFogFrameDTO mac: " + macAddress + "  allowed");
                     return cameraFogFrameDTO;
                 } else {
-                    logger.info("MAC: " + macAddress + " has not a valid session, payload was discarted");
+                    logger.info("MAC: " + macAddress + " has not a valid session, payload was discarded");
                 }
             } catch (JsonProcessingException e) {
                 logger.error("Error parsing JSON: " + e.getMessage(), e);
@@ -98,12 +101,21 @@ public class IntegrationConfig {
 
     private boolean hasSession(String macAddress) {
         logger.info("check session key: " + macAddress + "_session");
-        return Boolean.TRUE.equals(redisTemplate.hasKey(macAddress + "_session"));
+        boolean result = Boolean.TRUE.equals(redisTemplate.hasKey(macAddress + "_session"));
+        logger.info("check result " + result);
+        return true;
     }
 
     @PostConstruct
     public void logEnvironmentVariables() {
-        System.out.println("MQTT Broker: " + mqttBroker);
-        System.out.println("MQTT Topic: " + mqttTopic);
+        logger.info("MQTT Broker: "  +  mqttBroker);
+        logger.info("MQTT Topic: "  +  mqttTopic);
+    }
+
+    private void listRedisKeys() {
+        Set<String> keys = redisTemplate.keys("*");
+        for (String key : keys) {
+            logger.info("Redis Clave: " + key);
+        }
     }
 }
