@@ -33,15 +33,6 @@ services:
     networks:
       - smart-highway-net
 
-  # Integrator service for data integration
-  integrator:
-    image: ssanchez11/smart_highway_net_integrator_service:0.0.1
-    container_name: integrator-service
-    env_file:
-      - ./.env
-    networks:
-      - smart-highway-net
-
 # Define a custom bridge network for the services to communicate
 networks:
   smart-highway-net:

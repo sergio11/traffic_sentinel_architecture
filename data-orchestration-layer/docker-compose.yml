@@ -1,0 +1,49 @@
+version: "3"
+# Data Orchestration Layer:
+# This Docker Compose
+
+# Volumes
+volumes:
+  apache-nifi_data:
+    driver: local
+  zookeeper-data:
+    driver: local
+  zookeeper-log:
+    driver: local
+
+services:
+  # Unofficial convenience binaries and Docker images for Apache NiFi 
+  nifi:
+    build: 
+      context: ./nifi
+    container_name: nifi
+    volumes:
+      - 'apache-nifi_data:/apache/nifi'
+    env_file:
+      - ./.env
+    ports:
+      - '8080:8080'
+    networks:
+      - smart-highway-net
+
+  # ZooKeeper is a centralized service for maintaining configuration information,
+  # naming, providing distributed synchronization, and providing group services.
+  # It provides distributed coordination for our Kafka cluster.
+  # http://zookeeper.apache.org/
+  nifi_zookeeper:
+    image: confluentinc/cp-zookeeper
+    container_name: nifi_zookeeper
+    # ZooKeeper is designed to "fail-fast", so it is important to allow it to
+    # restart automatically.
+    restart: unless-stopped
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-log:/var/lib/zookeeper/log
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - smart-highway-net
+
+networks:
+  smart-highway-net:
+    driver: bridge

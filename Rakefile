@@ -265,6 +265,61 @@ namespace :SmartHighwayNet do
 		end
 	end
 
+	namespace :DataOrchestrationLayer do
+		desc "Data Orchestration Layer: Responsible for orchestrating data flows between systems and components, ensuring data integration, transformation, and delivery."
+		
+		desc "Check data orchestration layer deployment file"	
+		task :check_deployment_file do
+			puts "Check data orchestration layer deployment file ..."
+			raise "Deployment file not found, please check availability" unless File.file?("./data-storage-layer/docker-compose.yml")
+			puts "Platform Deployment File OK!"
+		end
+
+		desc "Start data orchestration layer containers"
+		task :start => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Start data orchestration layer containers"
+			puts `docker-compose -f ./data-orchestration-layer/docker-compose.yml up -d 2>&1`
+		end
+
+		desc "Stop data orchestration layer container"
+		task :stop => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Stop data orchestration layer container"
+			puts `docker-compose -f ./data-orchestration-layer/docker-compose.yml stop 2>&1`
+		end
+
+		desc "Deploy data orchestration layer container"
+		task :deploy => [ :check_docker_task, :login, :check_deployment_file, :cleaning_environment_task, :start  ] do
+			puts "Deploy data orchestration layer container"
+		end
+	end
+
+	namespace :ManagementAndMonitoringLayer do
+		desc "Tasks related to the Management And Monitoring Layer"
+	  
+		desc "Check management and monitoring layer deployment file"	
+		task :check_deployment_file do
+			puts "Check management and monitoring layer deployment file ..."
+			raise "Deployment file not found, please check availability" unless File.file?("./management-monitoring-layer/docker-compose.yml")
+			puts "Platform Deployment File OK!"
+		end
+
+		desc "Start management and monitoring layer containers"
+		task :start => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Start management and monitoring layer containers"
+			puts `docker-compose -f ./management-monitoring-layer/docker-compose.yml up -d 2>&1`
+		end
+
+		desc "Stop management and monitoring layer container"
+		task :stop => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Stop management and monitoring layer container"
+			puts `docker-compose -f ./management-monitoring-layer/docker-compose.yml stop 2>&1`
+		end
+
+		desc "Deploy management and monitoring layer container"
+		task :deploy => [ :check_docker_task, :login, :check_deployment_file, :cleaning_environment_task, :start  ] do
+			puts "Deploy management and monitoring layer container"
+		end
+	  end
 
 	namespace :StreamProcessingLayer do
 		desc "Tasks related to the Stream Processing Layer"
