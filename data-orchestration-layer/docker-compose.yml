@@ -10,15 +10,19 @@ volumes:
     driver: local
   zookeeper-log:
     driver: local
-
+  kafka-data:
+    driver: local
+  
 services:
+
   # Unofficial convenience binaries and Docker images for Apache NiFi 
   nifi:
     build: 
       context: ./nifi
     container_name: nifi
     volumes:
-      - 'apache-nifi_data:/apache/nifi'
+      - apache-nifi_data:/apache/nifi
+      - ./nifi/conf:/opt/nifi/nifi-current/conf
     env_file:
       - ./.env
     ports:
@@ -30,9 +34,9 @@ services:
   # naming, providing distributed synchronization, and providing group services.
   # It provides distributed coordination for our Kafka cluster.
   # http://zookeeper.apache.org/
-  nifi_zookeeper:
+  zookeeper:
     image: confluentinc/cp-zookeeper
-    container_name: nifi_zookeeper
+    container_name: zookeeper
     # ZooKeeper is designed to "fail-fast", so it is important to allow it to
     # restart automatically.
     restart: unless-stopped
@@ -41,6 +45,70 @@ services:
       - zookeeper-log:/var/lib/zookeeper/log
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - smart-highway-net
+
+  # Manage & view data inside your Apache Kafka ® cluster
+  akhq:
+    image: tchiotludo/akhq
+    container_name: akhq
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            docker-kafka-server:
+              properties:
+                bootstrap.servers: "kafka:9092"
+    ports:
+      - 8088:8080
+    networks:
+      - smart-highway-net 
+
+  # Kafka is a distributed streaming platform. It is used to build real-time streaming
+  # data pipelines that reliably move data between systems and platforms, and to build
+  # real-time streaming applications that transform or react to the streams of data.
+  # http://kafka.apache.org/
+  kafka:
+    image: confluentinc/cp-kafka
+    container_name: kafka
+    volumes:
+      - kafka-data:/var/lib/kafka
+    environment:
+      # Required. Instructs Kafka how to get in touch with ZooKeeper.
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_NUM_PARTITIONS: 1
+      KAFKA_COMPRESSION_TYPE: gzip
+      # Required when running in a single-node cluster, as we are. We would be able to take the default if we had
+      # three or more nodes in the cluster.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # Required. Kafka will publish this address to ZooKeeper so clients know
+      # how to get in touch with Kafka. "PLAINTEXT" indicates that no authentication
+      # mechanism will be used.
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    networks:
+      - smart-highway-net
+    links:
+      - zookeeper
+    depends_on:
+      - zookeeper
+
+   # Eclipse Mosquitto MQTT broker for message communication
+  mosquitto:
+    image: eclipse-mosquitto:2.0.14
+    restart: on-failure
+    container_name: mosquitto
+    env_file:
+      - ./.env
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    environment:
+      - MOSQUITTO_USERNAME=${MQTT_BROKER_USERNAME}
+      - MOSQUITTO_PASSWORD=${MQTT_BROKER_PASSWORD}
+    ports:
+      - "1883:1883"
     networks:
       - smart-highway-net
 
