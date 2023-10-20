@@ -10,6 +10,8 @@ volumes:
     driver: local
   minio-data-2:
     driver: local
+  redis-data:
+    driver: local
 
 services:
   # MongoDB is a free and open-source cross-platform document-oriented database program
@@ -27,6 +29,38 @@ services:
       - MONGO_INITDB_DATABASE=${MONGO_DB}
     networks:
       - smart-highway-net
+
+  # Redis container for data caching
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - smart-highway-net
+
+  # HashiCorp Vault for managing secrets and protecting sensitive data
+  vault:
+    image: vault:1.8.4
+    restart: on-failure
+    container_name: vault
+    volumes:
+      - ./vault/config:/vault/config
+      - ./vault/policies:/vault/policies
+      - ./vault/data:/vault/data
+    ports:
+      - 8200:8200
+    environment:
+      - VAULT_ADDR=http://0.0.0.0:8200
+      - VAULT_API_ADDR=http://0.0.0.0:8200
+      - VAULT_ADDRESS=http://0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    command: vault server -config=/vault/config/vault.json
+    networks:
+      - smart-highway-net 
 
   # Web-based MongoDB admin interface, written with Node.js and express
   mongo-express:

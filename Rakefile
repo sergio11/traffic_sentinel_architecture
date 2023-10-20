@@ -24,7 +24,6 @@ namespace :SmartHighwayNet do
 		puts `docker-compose ps 2>&1`
 	end
 
-
     desc "Check Docker and Docker Compose Task"
 	task :check_docker_task do
 		puts "Check Docker and Docker Compose ..."
@@ -36,15 +35,34 @@ namespace :SmartHighwayNet do
 		end
 	end
 
-	namespace :ServiceFoundationLayer do
-		desc "Tasks related to the Service Foundation Layer"
-		# Define tasks related to the Service Foundation Layer
+	namespace :DataStorageLayer do
+		desc "Tasks related to the Data Storage Layer"
+		# Define tasks related to the Data Storage Layer
 
-		desc "Check Service Foundation layer Deployment File"
+		desc "Check data storage layer deployment file"	
 		task :check_deployment_file do
-			puts "Check Platform Deployment File ..."
-			raise "Deployment file not found, please check availability" unless File.file?("./services-foundation-layer/docker-compose.yml")
+			puts "Check data storage layer deployment file ..."
+			raise "Deployment file not found, please check availability" unless File.file?("./data-storage-layer/docker-compose.yml")
 			puts "Platform Deployment File OK!"
+		end
+
+		desc "Start data storage layer containers"
+		task :start => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Start data storage layer containers"
+			puts `docker-compose -f ./data-storage-layer/docker-compose.yml up -d 2>&1`
+			puts "Waiting for data storage layer start ..."
+			sleep(60)
+		end
+
+		desc "Stop data storage layer container"
+		task :stop => [ :check_docker_task, :login, :check_deployment_file  ] do
+			puts "Stop data storage layer container"
+			puts `docker-compose -f ./data-storage-layer/docker-compose.yml stop 2>&1`
+		end
+
+		desc "Deploy data storage layer container"
+		task :deploy => [ :check_docker_task, :login, :check_deployment_file, :cleaning_environment_task, :start  ] do
+			puts "Deploy data storage layer container"
 		end
 
 		desc "Initialize and Unseal"
@@ -210,58 +228,10 @@ namespace :SmartHighwayNet do
 			end
 		end
 
-		desc "Start Service Foundation layer Containers"
-		task :start => [ :check_docker_task, :login, :check_deployment_file  ] do
-			puts "Start Service Foundation layer containers"
-			puts `docker-compose -f ./services-foundation-layer/docker-compose.yml up -d 2>&1`
-			puts "Waiting for Service Foundation layer start ..."
-			sleep(60)
-		end
-
-		desc "Stop Service Foundation layer Containers"
-		task :stop => [ :check_docker_task, :login, :check_deployment_file  ] do
-			puts "Stop Service Foundation layer Containers"
-			puts `docker-compose -f ./services-foundation-layer/docker-compose.yml stop 2>&1`
-		end
-
 		# New task that combines the initialization, enabling secrets, and preload tasks
 		desc "Configure Service Foundation layer"
 		task :configure => [:initialize_and_unseal, :enable_secrets, :preload_fog_nodes] do
 		  puts "Service Foundation layer configured."
-		end
-
-		desc "Deploy Service Foundation layer Containers"
-		task :deploy => [ :check_docker_task, :login, :check_deployment_file, :cleaning_environment_task, :start, :configure  ] do
-			puts "Deploy Service Foundation layer Containers"
-		end
-	end
-
-	namespace :DataStorageLayer do
-		desc "Tasks related to the Data Storage Layer"
-		# Define tasks related to the Data Storage Layer
-
-		desc "Check data storage layer deployment file"	
-		task :check_deployment_file do
-			puts "Check data storage layer deployment file ..."
-			raise "Deployment file not found, please check availability" unless File.file?("./data-storage-layer/docker-compose.yml")
-			puts "Platform Deployment File OK!"
-		end
-
-		desc "Start data storage layer containers"
-		task :start => [ :check_docker_task, :login, :check_deployment_file  ] do
-			puts "Start data storage layer containers"
-			puts `docker-compose -f ./data-storage-layer/docker-compose.yml up -d 2>&1`
-		end
-
-		desc "Stop data storage layer container"
-		task :stop => [ :check_docker_task, :login, :check_deployment_file  ] do
-			puts "Stop data storage layer container"
-			puts `docker-compose -f ./data-storage-layer/docker-compose.yml stop 2>&1`
-		end
-
-		desc "Deploy data storage layer container"
-		task :deploy => [ :check_docker_task, :login, :check_deployment_file, :cleaning_environment_task, :start  ] do
-			puts "Deploy data storage layer container"
 		end
 	end
 
