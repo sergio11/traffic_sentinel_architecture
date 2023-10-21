@@ -22,7 +22,6 @@ services:
     container_name: nifi
     volumes:
       - apache-nifi_data:/apache/nifi
-      - ./nifi/conf:/opt/nifi/nifi-current/conf
     env_file:
       - ./.env
     ports:
@@ -48,22 +47,6 @@ services:
     networks:
       - smart-highway-net
 
-  # Manage & view data inside your Apache Kafka ® cluster
-  akhq:
-    image: tchiotludo/akhq
-    container_name: akhq
-    environment:
-      AKHQ_CONFIGURATION: |
-        akhq:
-          connections:
-            docker-kafka-server:
-              properties:
-                bootstrap.servers: "kafka:9092"
-    ports:
-      - 8088:8080
-    networks:
-      - smart-highway-net 
-
   # Kafka is a distributed streaming platform. It is used to build real-time streaming
   # data pipelines that reliably move data between systems and platforms, and to build
   # real-time streaming applications that transform or react to the streams of data.
@@ -73,6 +56,8 @@ services:
     container_name: kafka
     volumes:
       - kafka-data:/var/lib/kafka
+    ports:
+      - 29092:29092
     environment:
       # Required. Instructs Kafka how to get in touch with ZooKeeper.
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -83,10 +68,12 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LISTENERS: EXTERNAL_SAME_HOST://:29092,INTERNAL://:9092
       # Required. Kafka will publish this address to ZooKeeper so clients know
-      # how to get in touch with Kafka. "PLAINTEXT" indicates that no authentication
-      # mechanism will be used.
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      # how to get in touch with Kafka.
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092, EXTERNAL_SAME_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL_SAME_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
     networks:
       - smart-highway-net
