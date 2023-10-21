@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import base64
 import VehicleDetectionTracker
+import subprocess
 from pyflink.datastream import (
     CheckpointingMode,
     StreamExecutionEnvironment,
@@ -46,6 +47,11 @@ class FrameProcessorTableFunction(TableFunction):
 def main():
     """Orchestrates the stream processing engine."""
     LOGGER.info("Starting PyFlink stream processing engine...")
+    LOGGER.info(f"KAFKA_INPUT_TOPIC: {KAFKA_INPUT_TOPIC}")
+    LOGGER.info(f"KAFKA_OUTPUT_TOPIC: {KAFKA_OUTPUT_TOPIC}")
+    LOGGER.info(f"KAFKA_BOOTSTRAP_SERVERS: {KAFKA_BOOTSTRAP_SERVERS}")
+    LOGGER.info(f"KAFKA_GROUP_ID: {KAFKA_GROUP_ID}")
+    kafka_connectivity_check()
     
     # Get Flink execution environment and table environment
     env, t_env = get_flink_environment()
@@ -71,6 +77,19 @@ def main():
 
     # Execute the Flink program
     env.execute("VideoFrameProcessorFlink")
+
+def kafka_connectivity_check():
+    try:
+        subprocess.check_call(["apt-get", "update"])
+        subprocess.check_call(["apt-get", "install", "kafkacat", "-y"])
+        LOGGER.info("kafkacat has been successfully installed.")
+        command = ["kafkacat", "-L", "-b", KAFKA_BOOTSTRAP_SERVERS]
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT, universal_newlines=True)
+        LOGGER.info("Kafka connectivity check result:")
+        LOGGER.info(output)
+    except subprocess.CalledProcessError as e:
+        LOGGER.error("Error during Kafka connectivity check:")
+        LOGGER.error(e.output)
 
 
 def get_flink_environment():

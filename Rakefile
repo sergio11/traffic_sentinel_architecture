@@ -262,7 +262,7 @@ namespace :SmartHighwayNet do
 			puts "Deploy data orchestration layer container"
 		end
 	end
-
+	
 	namespace :ManagementAndMonitoringLayer do
 		desc "Tasks related to the Management And Monitoring Layer"
 	  
@@ -291,20 +291,20 @@ namespace :SmartHighwayNet do
 		end
 	  end
 
-	namespace :StreamProcessingLayer do
-		desc "Tasks related to the Stream Processing Layer"
+	namespace :RealTimeDataProcessingLayer do
+		desc "Tasks related to the Real-Time Data Processing Layer"
 		
 		desc "Build stream processing layer"
 		task :build do
 		puts "Build stream processing layer ..."
 			image_info = [
-				{ name: "ssanchez11/smart_highway_net_job_manager_flink:0.0.1", directory: "./stream-processing-layer/jobmanager" },
-				{ name: "ssanchez11/smart_highway_net_task_manager_flink:0.0.1", directory: "./stream-processing-layer/taskmanager" }
+				{ name: "ssanchez11/smart_highway_net_job_manager_flink:0.0.1", directory: "./real-time-data-processing-layer/jobmanager" },
+				{ name: "ssanchez11/smart_highway_net_task_manager_flink:0.0.1", directory: "./real-time-data-processing-layer/taskmanager" }
 			]
 		
 			image_info.each do |info|
 				puts "Build Docker Image #{info[:name]}"
-				puts `docker build -t #{info[:name]} -f #{info[:directory]}/Dockerfile ./stream-processing-layer`
+				puts `docker build -t #{info[:name]} -f #{info[:directory]}/Dockerfile ./real-time-data-processing-layer`
 				puts "Docker image #{info[:name]} has been created! trying to upload it!"
 				puts `docker push #{info[:name]}`
 			end
@@ -315,20 +315,20 @@ namespace :SmartHighwayNet do
 		desc "Check stream processing layer deployment file"	
 		task :check_deployment_file do
 			puts "Check stream processing layer deployment file ..."
-			raise "Deployment file not found, please check availability" unless File.file?("./stream-processing-layer/docker-compose.yml")
+			raise "Deployment file not found, please check availability" unless File.file?("./real-time-data-processing-layer/docker-compose.yml")
 			puts "Platform Deployment File OK!"
 		end
 
 		desc "Start stream processing layer containers"
 		task :start => [ :check_docker_task, :login, :check_deployment_file  ] do
 			puts "Start stream processing layer containers"
-			puts `docker-compose -f ./stream-processing-layer/docker-compose.yml up -d 2>&1`
+			puts `docker-compose -f ./real-time-data-processing-layer/docker-compose.yml up -d 2>&1`
 		end
 
 		desc "Stop stream processing layer container"
 		task :stop => [ :check_docker_task, :login, :check_deployment_file  ] do
 			puts "Stop stream processing layer container"
-			puts `docker-compose -f ./stream-processing-layer/docker-compose.yml stop 2>&1`
+			puts `docker-compose -f ./real-time-data-processing-layer/docker-compose.yml stop 2>&1`
 		end
 
 		desc "Deploy stream processing layer container"
@@ -338,7 +338,7 @@ namespace :SmartHighwayNet do
 
 		desc "Install and run VideoFrameProcessorFlink"
 		task :install_job do
-			compose_file_path = "./framework-extended-services-layer/docker-compose.yml"
+			compose_file_path = "./real-time-data-processing-layer/docker-compose.yml"
 			job_directory = "VideoFrameProcessor"  # Name of the Job directory
 			job_file = "#{job_directory}/VideoFrameProcessorFlink.py"
 			requirements_file = "#{job_directory}/requirements.txt"
@@ -365,14 +365,29 @@ namespace :SmartHighwayNet do
 				exit 1
 			end
 
+			# Check if requirements.txt exists in the jobmanager container
 			check_requirements_file_command = "docker-compose -f #{compose_file_path} exec -T jobmanager test -f /opt/flink/jobs/#{requirements_file}"
 			system(check_requirements_file_command)
 
 			if $?.success?
-				# Install dependencies if requirements.txt
+				# Install Python dependencies from requirements.txt in the jobmanager container
 				puts "Installing Python dependencies from #{requirements_file} in the jobmanager container..."
 				install_requirements_command = "docker-compose -f #{compose_file_path} exec -T jobmanager pip install -r /opt/flink/jobs/#{requirements_file}"
 				system(install_requirements_command)
+
+				# Install Python dependencies in the taskmanager container as well
+				puts "Installing Python dependencies from #{requirements_file} in the taskmanager container..."
+				install_requirements_command_taskmanager = "docker-compose -f #{compose_file_path} exec -T taskmanager pip install -r /opt/flink/jobs/#{requirements_file}"
+				system(install_requirements_command_taskmanager)
+
+				# Install numpy==1.22.0 in both containers
+				puts "Installing numpy==1.22.0 in the jobmanager container..."
+				install_numpy_command_jobmanager = "docker-compose -f #{compose_file_path} exec -T jobmanager pip install numpy==1.22.0 --no-deps"
+				system(install_numpy_command_jobmanager)
+
+				puts "Installing numpy==1.22.0 in the taskmanager container..."
+				install_numpy_command_taskmanager = "docker-compose -f #{compose_file_path} exec -T taskmanager pip install numpy==1.22.0 --no-deps"
+				system(install_numpy_command_taskmanager)
 			end
 
 			# Run the Flink program in Python in the job-manager container
@@ -388,8 +403,7 @@ namespace :SmartHighwayNet do
 			end
 		end
 	end
-	  
-	  
+
 	namespace :DataServicesLayer do
 		desc "Tasks related to the Data Services Layer"
 		# Define tasks related to the Data Services Layer

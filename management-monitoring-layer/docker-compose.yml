@@ -2,6 +2,18 @@ version: "3"
 
 services:
 
+  # Web-based MongoDB admin interface, written with Node.js and express
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: on-failure
+    env_file:
+      - .env
+    ports:
+      - 8083:8081
+    networks:
+      - smart-highway-net
+
   # Manage & view data inside your Apache Kafka ® cluster
   akhq:
     image: tchiotludo/akhq
@@ -12,7 +24,7 @@ services:
           connections:
             docker-kafka-server:
               properties:
-                bootstrap.servers: "192.168.1.39:29092"
+                bootstrap.servers: "192.168.1.39:9092"
     ports:
       - 8088:8080
     networks:
