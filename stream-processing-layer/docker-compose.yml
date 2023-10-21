@@ -11,10 +11,12 @@ services:
     ports:
       - "8085:8081"  # Map container port 8081 to host port 8085
     command: jobmanager  # Run the job manager
+    env_file:
+      - ./.env
     environment:
       - |
         FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager  # Set Flink's job manager address
+        jobmanager.rpc.address: jobmanager
     networks:
       - smart-highway-net
 
@@ -26,6 +28,8 @@ services:
       - jobmanager  # Ensure that the job manager is ready before starting the task manager
     command: taskmanager  # Run the task manager
     scale: 1  # Scale to 1 instance
+    env_file:
+      - ./.env
     environment:
       - |
         FLINK_PROPERTIES=

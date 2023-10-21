@@ -2,26 +2,21 @@ version: "3"
 
 services:
 
-  # Browse Kafka topics and understand what's happening on your cluster.
-  # Find topics / view topic metadata / browse topic data
-  # (kafka messages) / view topic configuration / download data.
-  # https://github.com/Landoop/kafka-topics-ui
-  kafka-topics-ui:
-    image: landoop/kafka-topics-ui:latest
-    container_name: kafka-topics-ui
-    ports:
-      - "8082:8000"
+  # Manage & view data inside your Apache Kafka ® cluster
+  akhq:
+    image: tchiotludo/akhq
+    container_name: akhq
     environment:
-      # Required. Instructs the UI where it can find the Kafka REST Proxy.
-      KAFKA_REST_PROXY_URL: "http://192.168.1.39:8090/"
-      # This instructs the docker image to use Caddy to proxy traffic to kafka-topics-ui.
-      PROXY: "true"
-    # kafka-topics-ui relies upon Kafka REST.
-    # This will instruct docker to wait until those services are up
-    # before attempting to start kafka-topics-ui.
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            docker-kafka-server:
+              properties:
+                bootstrap.servers: "192.168.1.39:29092"
+    ports:
+      - 8088:8080
     networks:
-      - smart-highway-net
-
+      - smart-highway-net 
 
 networks:
   smart-highway-net:
