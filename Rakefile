@@ -390,18 +390,17 @@ namespace :SmartHighwayNet do
 	end
 	  
 	  
-	namespace :FrameworkExtendedServiceLayer do
-		desc "Tasks related to the Framework-Extended Service Layer"
-		# Define tasks related to the Framework-Extended Service Layer
+	namespace :DataServicesLayer do
+		desc "Tasks related to the Data Services Layer"
+		# Define tasks related to the Data Services Layer
 
-		desc "Build Framework Extended service layer"
+		desc "Build data services layer"
 		task :build do
-			puts "Build Framework Extended service layer ..."
+			puts "Build data services layer ..."
 			image_info = [
-				{ name: "ssanchez11/smart_highway_net_auth_service:0.0.1", directory: "./framework-extended-services-layer/auth" },
-				{ name: "ssanchez11/smart_highway_net_provision_service:0.0.1", directory: "./framework-extended-services-layer/provision" },
-				{ name: "ssanchez11/smart_highway_net_integrator_service:0.0.1", directory: "./framework-extended-services-layer/integrator" },
-				{ name: "ssanchez11/smart_highway_net_notifier_service:0.0.1", directory: "./framework-extended-services-layer/notifier" },
+				{ name: "ssanchez11/smart_highway_net_auth_service:0.0.1", directory: "./data-services-layer/auth" },
+				{ name: "ssanchez11/smart_highway_net_provision_service:0.0.1", directory: "./data-services-layer/provision" },
+				{ name: "ssanchez11/smart_highway_net_notifier_service:0.0.1", directory: "./data-services-layer/notifier" },
 			]
 
 			image_info.each do |info|
@@ -413,28 +412,28 @@ namespace :SmartHighwayNet do
 			puts `docker images`
 		end
 		
-		desc "Check Framework Extended service layer Deployment File"
+		desc "Check  data services layer Deployment File"
 		task :check_deployment_file do
 			puts "Check Platform Deployment File ..."
-			raise "Deployment file not found, please check availability" unless File.file?("./framework-extended-services-layer/docker-compose.yml")
+			raise "Deployment file not found, please check availability" unless File.file?("./data-services-layer/docker-compose.yml")
 			puts "Platform Deployment File OK!"
 		end
 
-		desc "Start framework extended service layer containers"
+		desc "Start data services layer containers"
 		task :start => [ :check_docker_task, :login, :check_deployment_file  ] do
-			puts "Start framework extended service layer containers"
-			puts `docker-compose -f ./framework-extended-services-layer/docker-compose.yml up -d 2>&1`
+			puts "Start data services layer containers"
+			puts `docker-compose -f ./data-services-layer/docker-compose.yml up -d 2>&1`
 		end
 
-		desc "Stop framework extended service layer container"
+		desc "Stop data services layer container"
 		task :stop => [ :check_docker_task, :login, :check_deployment_file  ] do
-			puts "Stop framework extended service layer container"
-			puts `docker-compose -f ./framework-extended-services-layer/docker-compose.yml stop 2>&1`
+			puts "Stop data services layer container"
+			puts `docker-compose -f ./data-services-layer/docker-compose.yml stop 2>&1`
 		end
 
-		desc "Deploy framework extended service layer container"
+		desc "Deploy data services layer container"
 		task :deploy => [ :check_docker_task, :login, :check_deployment_file, :cleaning_environment_task, :start  ] do
-			puts "Deploy framework extended service layer container"
+			puts "Deploy data services layer container"
 		end
 	end
 	  
