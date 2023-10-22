@@ -340,7 +340,7 @@ namespace :SmartHighwayNet do
 		task :install_job do
 			compose_file_path = "./real-time-data-processing-layer/docker-compose.yml"
 			job_directory = "VideoFrameProcessor"  # Name of the Job directory
-			job_file = "#{job_directory}/VideoFrameProcessorFlink.py"
+			job_file = "#{job_directory}/main.py"
 			requirements_file = "#{job_directory}/requirements.txt"
 
 			# Check if the Job directory exists in the jobmanager container
