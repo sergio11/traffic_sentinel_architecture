@@ -415,6 +415,7 @@ namespace :SmartHighwayNet do
 				{ name: "ssanchez11/smart_highway_net_auth_service:0.0.1", directory: "./data-services-layer/auth" },
 				{ name: "ssanchez11/smart_highway_net_provision_service:0.0.1", directory: "./data-services-layer/provision" },
 				{ name: "ssanchez11/smart_highway_net_notifier_service:0.0.1", directory: "./data-services-layer/notifier" },
+				{ name: "ssanchez11/smart_highway_net_vision_service:0.0.1", directory: "./data-services-layer/vision" }
 			]
 
 			image_info.each do |info|
