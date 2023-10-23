@@ -33,6 +33,17 @@ services:
     networks:
       - smart-highway-net
 
+  # VisionFrameAPI service
+  vision:
+    image: ssanchez11/smart_highway_net_vision_service:0.0.1
+    container_name: vision-service
+    env_file:
+      - ./.env
+    ports:
+      - "5002:5002"  # Map container port 5001 to host port 5001
+    networks:
+      - smart-highway-net
+
 # Define a custom bridge network for the services to communicate
 networks:
   smart-highway-net:

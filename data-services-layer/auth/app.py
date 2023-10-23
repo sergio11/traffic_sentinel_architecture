@@ -1,11 +1,13 @@
 import logging
+
+from common.requires_authentication_decorator import requires_authentication
 from flask import Flask, request, jsonify
 import hashlib
 import uuid
 import os
 import jwt
 import redis
-from pymongo import MongoClient
+from pymongo import MongoClient, DESCENDING
 import hvac
 
 """
@@ -114,60 +116,46 @@ db = mongo_client[MONGO_DB]
 
 # Endpoint to register new users (only administrators can do this)
 @app.route('/register_user', methods=['POST'])
+@requires_authentication(required_role="admin")
 def register_user():
     try:
         data = request.get_json()
-        role = data.get('role')  # 'operator' or 'admin'
+        role = data.get('role')
+        username = data.get('username')
+        password = data.get('password')
 
-        # Get the JWT token from the request headers
-        token = request.headers.get('Authentication')
+        # Check if the role is valid (either "operator" or "admin")
+        if role not in ("operator", "admin"):
+            return jsonify(message='Invalid role'), 400
 
-        if not token:
-            return jsonify(message='Unauthorized: JWT token is missing'), 401
+        # Check if username and password are not empty
+        if not username or not password:
+            return jsonify(message='Username and password are required'), 400
 
-        try:
-            # Verify and decode the JWT token
-            payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=['HS256'])
+        # Check if the user already exists
+        existing_user = db.users.find_one({"username": username})
 
-            # Check if the user is an administrator
-            if payload['role'] == 'admin':
-                if role == 'operator':
-                    # Logic to register a new user (operator)
-                    username = data.get('username')
-                    password = data.get('password')
+        if existing_user:
+            return jsonify(message='User already exists'), 400
 
-                    # Check if the user already exists
-                    existing_user = db.users.find_one({"username": username})
+        # Hash the password before storing it
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
 
-                    if existing_user:
-                        return jsonify(message='User already exists'), 400
+        # Create a new user document
+        new_user = {
+            "username": username,
+            "password": hashed_password,
+            "role": role,
+            "enabled": True  # Enable the user by default
+        }
 
-                    # Hash the password before storing it
-                    hashed_password = hashlib.sha256(password.encode()).hexdigest()
+        # Insert the new user into the MongoDB collection
+        result = db.users.insert_one(new_user)
 
-                    # Create a new user document
-                    new_user = {
-                        "username": username,
-                        "password": hashed_password,
-                        "role": role,
-                        "enabled": True  # Enable the user by default
-                    }
-
-                    # Insert the new user into the MongoDB collection
-                    result = db.users.insert_one(new_user)
-
-                    if result.inserted_id:
-                        return jsonify(message='User registered successfully')
-                    else:
-                        return jsonify(message='User registration failed'), 500
-                else:
-                    return jsonify(message='Unauthorized: Only operators can register users'), 401
-            else:
-                return jsonify(message='Unauthorized: Only administrators can register users'), 401
-        except jwt.ExpiredSignatureError:
-            return jsonify(message='Unauthorized: Token has expired'), 401
-        except jwt.InvalidTokenError:
-            return jsonify(message='Unauthorized: Invalid token'), 401
+        if result.inserted_id:
+            return jsonify(message='User registered successfully')
+        else:
+            return jsonify(message='User registration failed'), 500
     except Exception as e:
         return jsonify(message=str(e)), 500
 
@@ -178,81 +166,60 @@ def authenticate_user():
         data = request.get_json()
         username = data.get('username')
         password = data.get('password')
-
-        # Find the user in the database
         user = db.users.find_one({"username": username})
-
         if user:
             stored_password = user["password"]
             hashed_password = hashlib.sha256(password.encode()).hexdigest()
-
-            if stored_password == hashed_password and user["enabled"]:
-                # Generate a session or authentication token and respond to the client.
-                session_token = str(uuid.uuid4())
-                return jsonify(message='Authentication successful', session_token=session_token), 200
+            if stored_password == hashed_password:
+                if user.get("enabled", False):
+                    payload = {
+                        "username": username,
+                        "role": user.get("role", "operator") 
+                    }
+                    session_token = jwt.encode(payload, JWT_SECRET_KEY, algorithm='HS256')
+                    return jsonify(message='Authentication successful', session_token=session_token), 200
+                else:
+                    return jsonify(message='Authentication failed: User is not enabled'), 401
             else:
-                return jsonify(message='Authentication failed'), 401
+                return jsonify(message='Authentication failed: Invalid credentials'), 401
         else:
-            return jsonify(message='User not found'), 404
+            return jsonify(message='Authentication failed: User not found'), 404
     except Exception as e:
         return jsonify(message=str(e)), 500
 
 # Endpoint to enable/disable users (only administrators can do this)
 @app.route('/toggle_user_status', methods=['POST'])
+@requires_authentication(required_role="admin")
 def toggle_user_status():
     try:
         data = request.get_json()
         username = data.get('username')
         status = data.get('status')  # 'enable' or 'disable'
 
-        # Get the JWT token from the request headers
-        token = request.headers.get('Authentication')
+        if status not in ('enable', 'disable'):
+            return jsonify(message='Invalid status'), 400
 
-        if not token:
-            return jsonify(message='Unauthorized: JWT token is missing'), 401
+        # Update user status in the database
+        db.users.update_one({"username": username}, {"$set": {"enabled": status == 'enable'}})
 
-        try:
-            # Verify and decode the JWT token
-            payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=['HS256'])
-            # Check if the user is an administrator
-            if payload['role'] == 'admin':
-                if status in ('enable', 'disable'):
-                    # Update user status in the database
-                    db.users.update_one({"username": username}, {"$set": {"enabled": status == 'enable'}})
-                    return jsonify(message=f'User {username} {status}d successfully')
-                else:
-                    return jsonify(message='Invalid status'), 400
-            else:
-                return jsonify(message='Unauthorized: Only administrators can toggle user status'), 401
-        except jwt.ExpiredSignatureError:
-            return jsonify(message='Unauthorized: Token has expired'), 401
-        except jwt.InvalidTokenError:
-            return jsonify(message='Unauthorized: Invalid token'), 401
+        return jsonify(message=f'User {username} {status}d successfully')
     except Exception as e:
         return jsonify(message=str(e)), 500
 
-# Endpoint for administrators to list all registered users
+# Endpoint to list all registered users with pagination and sorting
 @app.route('/list_users', methods=['GET'])
+@requires_authentication(required_role="admin")
 def list_users():
     try:
-        # Get the JWT token from the request headers
-        token = request.headers.get('Authentication')
-        if not token:
-            return jsonify(message='Unauthorized: JWT token is missing'), 401
-        try:
-            # Verify and decode the JWT token
-            payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=['HS256'])
-            # Check if the user is an administrator
-            if payload['role'] == 'admin':
-                # Get the list of all users
-                users = list(db.users.find({}, {"_id": 0, "password": 0}))  # Exclude the password
-                return jsonify(users=users)
-            else:
-                return jsonify(message='Unauthorized: Only administrators can list users'), 401
-        except jwt.ExpiredSignatureError:
-            return jsonify(message='Unauthorized: Token has expired'), 401
-        except jwt.InvalidTokenError:
-            return jsonify(message='Unauthorized: Invalid token'), 401
+        page = request.args.get('page', default=1, type=int)
+        per_page = request.args.get('per_page', default=10, type=int)
+        users = list(
+            db.users.find({}, {"_id": 0, "password": 0})
+            .sort("registration_date", DESCENDING)
+            .skip((page - 1) * per_page)
+            .limit(per_page)
+        )
+        return jsonify(users=users), 200
     except Exception as e:
         return jsonify(message=str(e)), 500
 
