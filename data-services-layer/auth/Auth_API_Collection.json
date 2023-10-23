@@ -1,94 +1,154 @@
 {
-  "info": {
+    "info": {
       "_postman_id": "6d7a07f5-5118-4cc9-g664-0e1e43e48a7e",
       "name": "Auth API Collection",
       "description": "Collection for the Auth API service",
       "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "item": [
+    },
+    "item": [
       {
-          "name": "get_challenge",
-          "request": {
-              "method": "POST",
-              "header": [
-                  {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                  }
-              ],
-              "body": {
-                  "mode": "raw",
-                  "raw": "{\"mac_address\": \"MAC_ADDRESS\"}"
-              },
-              "url": {
-                  "raw": "http://localhost:5000/get_challenge",
-                  "protocol": "http",
-                  "host": [
-                      "localhost"
-                  ],
-                  "port": "5000",
-                  "path": [
-                      "get_challenge"
-                  ]
-              }
+        "name": "get_challenge",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\"mac_address\": \"MAC_ADDRESS\"}"
           },
-          "response": []
+          "url": {
+            "raw": "http://localhost:5000/get_challenge",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["get_challenge"]
+          }
+        },
+        "response": []
       },
       {
-          "name": "authenticate",
-          "request": {
-              "method": "POST",
-              "header": [
-                  {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                  }
-              ],
-              "body": {
-                  "mode": "raw",
-                  "raw": "{\"mac_address\": \"MAC_ADDRESS\", \"client_response\": \"CHAP_RESPONSE\"}"
-              },
-              "url": {
-                  "raw": "http://localhost:5000/authenticate",
-                  "protocol": "http",
-                  "host": [
-                      "localhost"
-                  ],
-                  "port": "5000",
-                  "path": [
-                      "authenticate"
-                  ]
-              }
+        "name": "authenticate",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\"mac_address\": \"MAC_ADDRESS\", \"client_response\": \"CHAP_RESPONSE\"}"
           },
-          "response": []
+          "url": {
+            "raw": "http://localhost:5000/authenticate",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["authenticate"]
+          }
+        },
+        "response": []
       },
       {
-          "name": "check_session",
-          "request": {
-              "method": "POST",
-              "header": [
-                  {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                  }
-              ],
-              "body": {
-                  "mode": "raw",
-                  "raw": "{\"mac_address\": \"MAC_ADDRESS\"}"
-              },
-              "url": {
-                  "raw": "http://localhost:5000/check_session",
-                  "protocol": "http",
-                  "host": [
-                      "localhost"
-                  ],
-                  "port": "5000",
-                  "path": [
-                      "check_session"
-                  ]
-              }
+        "name": "check_session",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\"mac_address\": \"MAC_ADDRESS\"}"
           },
-          "response": []
+          "url": {
+            "raw": "http://localhost:5000/check_session",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["check_session"]
+          }
+        },
+        "response": []
+      },
+      {
+        "name": "register_user",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\"role\": \"operator\", \"username\": \"USERNAME\", \"password\": \"PASSWORD\"}"
+          },
+          "url": {
+            "raw": "http://localhost:5000/register_user",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["register_user"]
+          }
+        },
+        "response": []
+      },
+      {
+        "name": "toggle_user_status",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Authentication",
+              "value": "YOUR_JWT_TOKEN_HERE"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\"username\": \"USERNAME\", \"status\": \"enable\"}"
+          },
+          "url": {
+            "raw": "http://localhost:5000/toggle_user_status",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["toggle_user_status"]
+          }
+        },
+        "response": []
+      },
+      {
+        "name": "list_users",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authentication",
+              "value": "YOUR_JWT_TOKEN_HERE"
+            }
+          ],
+          "url": {
+            "raw": "http://localhost:5000/list_users",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["list_users"]
+          }
+        },
+        "response": []
       }
-  ]
+    ]
 }
