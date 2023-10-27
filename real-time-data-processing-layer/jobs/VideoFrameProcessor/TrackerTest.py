@@ -6,7 +6,7 @@ import numpy as np
 
 
 # Open the video file
-video_path = "https://49-d2.divas.cloud/CHAN-8293/CHAN-8293_1.stream/playlist.m3u8?83.52.13.30&vdswztokenhash=cy0V54p4eY_4209Ljv9UVJqWIa_dIQo24HrIkL8A3qg="
+video_path = "https://49-d2.divas.cloud/CHAN-8294/CHAN-8294_1.stream/playlist.m3u8?83.52.13.30&vdswztokenhash=wTGOQvKvSjyYm7XQplKNtkMpVyLZiBbWZ-bPIwUnXwE="
 cap = cv2.VideoCapture(video_path)
 
 # Store the track history

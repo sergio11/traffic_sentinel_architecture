@@ -4,6 +4,7 @@ import time
 import paho.mqtt.client as mqtt
 import socket
 import base64
+import cv2
 import requests
 import hashlib
 import uuid
@@ -26,6 +27,7 @@ AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL", "http://localhost:5000/")
 FRAMES_OUTPUT_DIRECTORY = os.environ.get("FRAMES_OUTPUT_DIRECTORY", "frames_captured")
 MAX_RETRIES = int(os.environ.get("MAX_RETRIES", 3))
 RETRY_DELAY = int(os.environ.get("RETRY_DELAY", 10))
+CAPTURE_INTERVAL = 0.3 
 
 mac_address = ""
 
@@ -171,47 +173,48 @@ def on_message(client, userdata, message):
     except Exception as e:
         logging.error("Error handling MQTT message: %s", e)
 
-# Function to capture a frame, encode it in base64, and send it over MQTT
-def capture_and_send_frame(frame_path, timestamp, camera_url, mac_address):
-    """
-    Capture a frame, encode it in base64, and send it over MQTT.
-
-    Args:
-        frame_path (str): Path to the captured frame.
-        timestamp (str): Timestamp of the capture.
-        camera_url (str): URL of the camera feed.
-        mac_address (str): MAC address of the device.
-    """
+# Function to send a frame over MQTT
+def send_frame_over_mqtt(timestamp, mac_address):
+    # Construct the full file path for the captured frame
     frame_path = os.path.join(FRAMES_OUTPUT_DIRECTORY, f"frame_{timestamp}.jpg")
-    capture_command = [
-        "ffmpeg",
-        "-i", camera_url,
-        "-vf", "fps=1",
-        "-frames:v", "1",
-        "-f", "image2",
-        frame_path
-    ]
+    
     try:
-        result = subprocess.run(capture_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if result.returncode == 0:
-            if os.path.exists(frame_path):
-                with open(frame_path, "rb") as frame_file:
-                    frame_data = frame_file.read()
-                    base64_frame = base64.b64encode(frame_data).decode('utf-8')
-                    payload = {
-                        "mac_address": mac_address,
-                        "timestamp": timestamp,
-                        "frame_data": base64_frame
-                    }
-                    client.publish(MQTT_TOPIC, payload=str(payload), qos=0)
-                    logging.info("Frame sent to MQTT - MAC Address: %s, Timestamp: %s, Frame Size: %s bytes", mac_address, timestamp, len(base64_frame))
-                    os.remove(frame_path)  # Remove the file after sending
-            else:
-                logging.error("The image file was not found at %s", frame_path)
+        # Ensure the file has the ".jpg" extension
+        frame_path = os.path.splitext(frame_path)[0] + ".jpg"
+
+        # Check if the frame file exists
+        if os.path.exists(frame_path):
+            # Open the frame file for reading in binary mode
+            with open(frame_path, "rb") as frame_file:
+                # Read the binary frame data
+                frame_data = frame_file.read()
+
+                # Encode the frame data in base64
+                base64_frame = base64.b64encode(frame_data).decode('utf-8')
+
+                # Construct the payload to be sent over MQTT
+                payload = {
+                    "mac_address": mac_address,
+                    "timestamp": timestamp,
+                    "frame_data": base64_frame
+                }
+
+                # Publish the payload to the specified MQTT topic with QoS 0
+                client.publish(MQTT_TOPIC, payload=str(payload), qos=0)
+
+                # Log the successful frame transmission
+                logging.info("Frame sent to MQTT - MAC Address: %s, Timestamp: %s, Frame Size: %s bytes", mac_address, timestamp, len(base64_frame))
+
+                # Remove the file after sending (clean up)
+                os.remove(frame_path)
         else:
-            logging.error("Error capturing the image. ffmpeg output: %s", result.stderr)
+            # Log an error if the frame file was not found
+            logging.error("The image file was not found at %s", frame_path)
+
     except Exception as e:
-        logging.error("Error: %s", e)
+        # Handle exceptions that might occur during frame sending
+        logging.error("Error sending the frame over MQTT: %s", e)
+
 
 # Function for the frame capture loop
 def frame_capture_loop(mac_address, camera_url):
@@ -222,12 +225,38 @@ def frame_capture_loop(mac_address, camera_url):
         mac_address (str): MAC address of the device.
         camera_url (str): URL of the camera feed.
     """
-    while True:
-        timestamp = str(int(time.time()))
-        frame_filename = f"frame_{timestamp}.jpg"
-        frame_path = os.path.join(FRAMES_OUTPUT_DIRECTORY, frame_filename)
-        capture_and_send_frame(frame_path, timestamp, camera_url, mac_address)
-        time.sleep(1)
+    cap = cv2.VideoCapture(camera_url)
+
+    while cap.isOpened():
+        start_time = time.time()
+        success, frame = cap.read()
+        
+        if success:
+            timestamp = str(int(time.time()))
+            frame_filename = f"frame_{timestamp}.jpg"
+            frame_path = os.path.join(FRAMES_OUTPUT_DIRECTORY, frame_filename)
+
+            # Save the captured frame to a file
+            cv2.imwrite(frame_path, frame)
+
+            # Launch the send_frame_over_mqtt function in a separate thread
+            mqtt_thread = Thread(target=send_frame_over_mqtt, args=(timestamp, mac_address))
+            mqtt_thread.start()
+
+        else:
+            logging.error("Error capturing the image using OpenCV")
+
+        # Calculate the time elapsed in the capture operation
+        elapsed_time = time.time() - start_time
+
+        # Calculate the remaining time until the next capture interval
+        sleep_time = max(0, CAPTURE_INTERVAL - elapsed_time)
+
+        # Wait until the next capture interval
+        time.sleep(sleep_time)
+
+    # Release the video capture object
+    cap.release()
 
 # Function to authenticate the device
 def authenticate(mac_address):
