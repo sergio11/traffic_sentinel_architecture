@@ -1,6 +1,6 @@
 # Traffic Sentinel - An IoT Traffic Monitoring System
 
-![Traffic Sentinel Logo](traffic_sentinel_logo.png)
+<img width="300px" align="left" src="./doc/logo.PNG" />
 
 Traffic Sentinel is a scalable IoT-based traffic monitoring system designed to process streaming data from IP cameras, apply intelligent vehicle detection using YOLO (You Only Look Once), and provide real-time insights into traffic patterns on roads. The system leverages Fog nodes for intermediate processing, Apache Flink for data processing, Redis for caching and session management, and MQTT for communication between nodes.
 
