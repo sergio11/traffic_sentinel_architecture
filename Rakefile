@@ -372,22 +372,13 @@ namespace :SmartHighwayNet do
 			if $?.success?
 				# Install Python dependencies from requirements.txt in the jobmanager container
 				puts "Installing Python dependencies from #{requirements_file} in the jobmanager container..."
-				install_requirements_command = "docker-compose -f #{compose_file_path} exec -T jobmanager pip install -r /opt/flink/jobs/#{requirements_file}"
+				install_requirements_command = "docker-compose -f #{compose_file_path} exec -T jobmanager pip install --no-cache-dir -r /opt/flink/jobs/#{requirements_file}"
 				system(install_requirements_command)
 
 				# Install Python dependencies in the taskmanager container as well
 				puts "Installing Python dependencies from #{requirements_file} in the taskmanager container..."
-				install_requirements_command_taskmanager = "docker-compose -f #{compose_file_path} exec -T taskmanager pip install -r /opt/flink/jobs/#{requirements_file}"
+				install_requirements_command_taskmanager = "docker-compose -f #{compose_file_path} exec -T taskmanager pip install --no-cache-dir -r /opt/flink/jobs/#{requirements_file}"
 				system(install_requirements_command_taskmanager)
-
-				# Install numpy==1.22.0 in both containers
-				puts "Installing numpy==1.22.0 in the jobmanager container..."
-				install_numpy_command_jobmanager = "docker-compose -f #{compose_file_path} exec -T jobmanager pip install numpy==1.22.0 --no-deps"
-				system(install_numpy_command_jobmanager)
-
-				puts "Installing numpy==1.22.0 in the taskmanager container..."
-				install_numpy_command_taskmanager = "docker-compose -f #{compose_file_path} exec -T taskmanager pip install numpy==1.22.0 --no-deps"
-				system(install_numpy_command_taskmanager)
 			end
 
 			# Run the Flink program in Python in the job-manager container

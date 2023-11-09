@@ -8,16 +8,32 @@ from pyflink.table import DataTypes, Row
 from pyflink.table.udf import udtf, TableFunction
 from logger import logger
 from pyflink.table import Row
-from VehicleDetectionTracker.VehicleTracker import VehicleTracker
+from VehicleDetectionTracker.VehicleDetectionTracker import VehicleDetectionTracker
 
 
 class FrameProcessorTableFunction(TableFunction):
-    
-    def __init__(self, vehicleTracker):
-        self.tracker = vehicleTracker
+    """
+        Initializes the FrameProcessorTableFunction.
 
-    def eval(self, mac_address, frame_data):
-        return Row(str(self.tracker.process_frame_base64(frame_data)))
+        Args:
+            tracker: An instance of the vehicle tracker used for processing frames.
+    """
+    def __init__(self, tracker):
+        self.vehicle_tracker = tracker
+
+    def eval(self, frame_data, timestamp):
+        """
+        Evaluates the FrameProcessorTableFunction for the given frame data and timestamp.
+
+        Args:
+            frame_data (str): Base64-encoded frame data.
+            timestamp: The timestamp associated with the frame.
+
+        Returns:
+            Row: A Row containing the result of processing the frame with the vehicle tracker.
+        """
+        # Process the frame using the vehicle tracker and return the result as a Row
+        return Row(str(self.vehicle_tracker.process_frame_base64(frame_data, timestamp)))
 
 
 def main():
@@ -29,14 +45,14 @@ def main():
     logger.info(f"KAFKA_GROUP_ID: {KAFKA_GROUP_ID}")
     kafka_connectivity_check()
 
-    # Create Vehicle tracker
-    tracker = VehicleTracker()
-    
+    # Create vehicle detection tracker instance
+    vehicleTracker = VehicleDetectionTracker()
+
     # Get Flink execution environment and table environment
     env, t_env = get_flink_environment()
 
     # Register the custom FrameProcessorTableFunction as a temporary function   
-    t_env.create_temporary_function("frame_processor", udtf(FrameProcessorTableFunction(tracker), result_types=['STRING']))
+    t_env.create_temporary_function("frame_processor", udtf(FrameProcessorTableFunction(vehicleTracker), result_types=['STRING']))
 
     # Create source and sink tables
     create_source_table(t_env)
@@ -47,9 +63,9 @@ def main():
         .select(
             col("mac_address"), 
             call("frame_processor", 
-                 col("mac_address"), 
-                 col("frame_data")
-                ).cast(DataTypes.STRING())
+                col("frame_data"),
+                col("event_time") 
+            ).cast(DataTypes.STRING())
             ) \
         .execute_insert("VideoFramesProcessed").wait()
 
