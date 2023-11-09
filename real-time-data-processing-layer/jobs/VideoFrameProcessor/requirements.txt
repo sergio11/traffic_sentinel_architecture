@@ -1,4 +1,4 @@
 apache-flink==1.17.1
 apache-flink-libraries==1.17.1
 pyflink==1.0
-VehicleDetectionTracker==0.0.19
+VehicleDetectionTracker==0.0.23
