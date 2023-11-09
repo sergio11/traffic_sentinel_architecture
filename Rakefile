@@ -412,15 +412,15 @@ namespace :SmartHighwayNet do
 		task :build do
 			puts "Build data services layer ..."
 			image_info = [
-				{ name: "ssanchez11/smart_highway_net_auth_service:0.0.1", directory: "./data-services-layer/auth" },
-				{ name: "ssanchez11/smart_highway_net_provision_service:0.0.1", directory: "./data-services-layer/provision" },
-				{ name: "ssanchez11/smart_highway_net_notifier_service:0.0.1", directory: "./data-services-layer/notifier" },
-				{ name: "ssanchez11/smart_highway_net_vision_service:0.0.1", directory: "./data-services-layer/vision" }
+				{ name: "ssanchez11/smart_highway_net_auth_service:0.0.1", dockerfile: "./data-services-layer/auth/Dockerfile" },
+				{ name: "ssanchez11/smart_highway_net_provision_service:0.0.1", dockerfile: "./data-services-layer/provision/Dockerfile" },
+				{ name: "ssanchez11/smart_highway_net_notifier_service:0.0.1", dockerfile: "./data-services-layer/notifier/Dockerfile" },
+				{ name: "ssanchez11/smart_highway_net_vision_service:0.0.1", dockerfile: "./data-services-layer/vision/Dockerfile" }
 			]
 
 			image_info.each do |info|
 				puts "Build Docker Image #{info[:name]}"
-				puts `docker build -t #{info[:name]} -f #{info[:directory]}/Dockerfile #{info[:directory]}`
+				puts `docker build -t #{info[:name]} -f #{info[:dockerfile]} ./data-services-layer`
 				puts "Docker image #{info[:name]} has been created! trying to upload it!"
 				puts `docker push #{info[:name]}`
 			end
