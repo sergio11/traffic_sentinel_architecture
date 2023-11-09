@@ -1,4 +1,4 @@
-# Traffic Sentinel - An IoT Traffic Monitoring System
+# 🚦 Traffic Sentinel - Driving Smarter Roads with IoT Traffic Monitoring 🌐
 
 <img width="300px" align="left" src="./doc/logo.PNG" />
 
