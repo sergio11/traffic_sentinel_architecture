@@ -1,116 +1,136 @@
 {
-  "info": {
+    "info": {
       "_postman_id": "1b642f08-e425-4908-92d0-1eb762dc125g",
       "name": "Traffic Sentinel User Management API",
       "description": "Collection for testing User Management API endpoints",
       "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "item": [
+    },
+    "item": [
       {
-          "name": "Register User",
-          "request": {
-              "method": "POST",
-              "header": [
-                  {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                  }
-              ],
-              "body": {
-                  "mode": "raw",
-                  "raw": "{\n\t\"role\": \"admin\",\n\t\"username\": \"testuser\",\n\t\"password\": \"testpassword\"\n}"
-              },
-              "url": {
-                  "raw": "http://localhost:5000/users/register",
-                  "protocol": "http",
-                  "host": [
-                      "localhost"
-                  ],
-                  "port": "5000",
-                  "path": [
-                      "users",
-                      "register"
-                  ]
-              }
+        "name": "Register User",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n\t\"role\": \"admin\",\n\t\"username\": \"testuser\",\n\t\"password\": \"testpassword\"\n}"
           },
-          "response": []
+          "url": {
+            "raw": "http://localhost:5003/users/register",
+            "protocol": "http",
+            "host": [
+              "localhost"
+            ],
+            "port": "5003",
+            "path": [
+              "users",
+              "register"
+            ]
+          }
+        },
+        "response": []
       },
       {
-          "name": "Authenticate User",
-          "request": {
-              "method": "POST",
-              "header": [
-                  {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                  }
-              ],
-              "body": {
-                  "mode": "raw",
-                  "raw": "{\n\t\"username\": \"testuser\",\n\t\"password\": \"testpassword\"\n}"
-              },
-              "url": {
-                  "raw": "http://localhost:5000/users/authenticate",
-                  "protocol": "http",
-                  "host": [
-                      "localhost"
-                  ],
-                  "port": "5000",
-                  "path": [
-                      "users",
-                      "authenticate"
-                  ]
-              }
+        "name": "Authenticate User",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n\t\"username\": \"testuser\",\n\t\"password\": \"testpassword\"\n}"
           },
-          "response": []
+          "url": {
+            "raw": "http://localhost:5003/users/authenticate",
+            "protocol": "http",
+            "host": [
+              "localhost"
+            ],
+            "port": "5003",
+            "path": [
+              "users",
+              "authenticate"
+            ]
+          }
+        },
+        "response": []
       },
       {
-          "name": "Toggle User Status",
-          "request": {
-              "method": "POST",
-              "header": [
-                  {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                  }
-              ],
-              "body": {
-                  "mode": "raw",
-                  "raw": "{\n\t\"username\": \"testuser\",\n\t\"status\": \"enable\"\n}"
-              },
-              "url": {
-                  "raw": "http://localhost:5000/users/toggle-status",
-                  "protocol": "http",
-                  "host": [
-                      "localhost"
-                  ],
-                  "port": "5000",
-                  "path": [
-                      "users",
-                      "toggle-status"
-                  ]
-              }
+        "name": "Toggle User Status",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n\t\"username\": \"testuser\",\n\t\"status\": \"enable\"\n}"
           },
-          "response": []
+          "url": {
+            "raw": "http://localhost:5003/users/toggle-status",
+            "protocol": "http",
+            "host": [
+              "localhost"
+            ],
+            "port": "5003",
+            "path": [
+              "users",
+              "toggle-status"
+            ]
+          }
+        },
+        "response": []
       },
       {
-          "name": "List Users",
-          "request": {
-              "method": "GET",
-              "url": {
-                  "raw": "http://localhost:5000/users/list",
-                  "protocol": "http",
-                  "host": [
-                      "localhost"
-                  ],
-                  "port": "5000",
-                  "path": [
-                      "users",
-                      "list"
-                  ]
-              }
-          },
-          "response": []
+        "name": "List Users",
+        "request": {
+          "method": "GET",
+          "url": {
+            "raw": "http://localhost:5003/users/list",
+            "protocol": "http",
+            "host": [
+              "localhost"
+            ],
+            "port": "5003",
+            "path": [
+              "users",
+              "list"
+            ]
+          }
+        },
+        "response": []
+      },
+      {
+        "name": "Check Admin User",
+        "request": {
+          "method": "GET",
+          "url": {
+            "raw": "http://localhost:5003/users/check-admin",
+            "protocol": "http",
+            "host": [
+              "localhost"
+            ],
+            "port": "5003",
+            "path": [
+                "users",
+                "check-admin"
+            ]
+          }
+        },
+        "response": []
       }
-  ]
-}
+    ]
+  }
+  
