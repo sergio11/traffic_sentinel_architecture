@@ -139,5 +139,56 @@ def list_users():
         return generate_response("error", str(e)), 500
 
 
+@app.route(f"{BASE_URL_PREFIX}/check-admin", methods=["GET"])
+def check_admin_user():
+    """
+    Check the existence of the admin user and create it if it does not exist.
+
+    Returns:
+    - 200 OK: If the admin user exists.
+    - 201 Created: If the admin user is created successfully.
+    - 500 Internal Server Error: If an error occurs during the process.
+    """
+    try:
+        admin_username = os.environ.get("ADMIN_USERNAME", "admin")
+        admin_user = db.users.find_one({"username": admin_username, "role": "admin"})
+
+        if admin_user:
+            return generate_response("success", "Admin user exists.")
+        else:
+            _create_admin_user()
+            return generate_response("success", "Admin user created successfully."), 201
+
+    except Exception as e:
+        return generate_response("error", str(e)), 500
+
+
+def _create_admin_user():
+    # Environment variables
+    admin_username = os.environ.get("ADMIN_USERNAME", "admin")
+    admin_password = os.environ.get("ADMIN_PASSWORD", "admin_password")
+
+    # Check if the admin user already exists
+    existing_admin_user = db.users.find_one({"username": admin_username, "role": "admin"})
+
+    if not existing_admin_user:
+        # Hash the password
+        hashed_password = hashlib.sha256(admin_password.encode()).hexdigest()
+
+        # Create the admin user
+        admin_user = {
+            "username": admin_username,
+            "password": hashed_password,
+            "role": "admin",
+            "enabled": True  # Enable the user by default
+        }
+
+        # Insert the admin user into the MongoDB collection
+        db.users.insert_one(admin_user)
+        logger.info("Admin user created successfully.")
+    else:
+        logger.info("The admin user already exists.")
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
