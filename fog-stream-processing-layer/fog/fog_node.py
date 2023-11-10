@@ -2,7 +2,6 @@ import os
 import subprocess
 import time
 import paho.mqtt.client as mqtt
-import socket
 import base64
 import cv2
 import requests
@@ -16,14 +15,13 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # Load configuration from environment variables
-PROVISIONING_SERVICE_URL = os.environ.get("PROVISIONING_SERVICE_URL", "http://localhost:5001/")
+FOG_SERVICE_URL = os.environ.get("FOG_SERVICE_URL", "http://localhost:5000/")
 MQTT_BROKER = os.environ.get("MQTT_BROKER")
 MQTT_PORT = int(os.environ.get("MQTT_PORT", 1883))
 MQTT_TOPIC = os.environ.get("MQTT_TOPIC", "frames")
 MQTT_BROKER_USERNAME = os.environ.get("MQTT_BROKER_USERNAME")
 MQTT_BROKER_PASSWORD = os.environ.get("MQTT_BROKER_PASSWORD")
 MQTT_REAUTH_TOPIC = os.environ.get("MQTT_REAUTH_TOPIC", "request-auth")
-AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL", "http://localhost:5000/")
 FRAMES_OUTPUT_DIRECTORY = os.environ.get("FRAMES_OUTPUT_DIRECTORY", "frames_captured")
 MAX_RETRIES = int(os.environ.get("MAX_RETRIES", 3))
 RETRY_DELAY = int(os.environ.get("RETRY_DELAY", 10))
@@ -120,7 +118,7 @@ def get_challenge(mac_address):
         str: Authentication challenge.
     """
     try:
-        response = requests.post(f"{AUTH_SERVICE_URL}/nodes/get-challenge", json={"mac_address": mac_address})
+        response = requests.post(f"{FOG_SERVICE_URL}/get-challenge", json={"mac_address": mac_address})
         if response.status_code == 200:
             data = response.json()
             return data.get("challenge")
@@ -146,7 +144,7 @@ def authenticate_chap(mac_address, client_response):
     """
     try:
         global session_id  # Declare the global variable
-        response = requests.post(f"{AUTH_SERVICE_URL}/nodes/authenticate", json={"mac_address": mac_address, "client_response": client_response})
+        response = requests.post(f"{FOG_SERVICE_URL}/authenticate", json={"mac_address": mac_address, "client_response": client_response})
         if response.status_code == 200:
             auth_data = response.json()
             session_id = auth_data.get("session_id")  # Retrieve the session_id from the response
@@ -294,7 +292,7 @@ def authenticate(mac_address):
 
         challenge = get_challenge(mac_address)
         if challenge:
-            password_response = requests.get(f"{AUTH_SERVICE_URL}/nodes/get-password?mac_address={mac_address}")
+            password_response = requests.get(f"{FOG_SERVICE_URL}/get-password?mac_address={mac_address}")
             if password_response.status_code == 200:
                 password_data = password_response.json()
                 node_password = password_data.get("fog_password")
@@ -351,7 +349,7 @@ def get_provisioning_data(session_id):
     headers = {
         "X-Session-Id": session_id
     }
-    response = requests.get(f"{PROVISIONING_SERVICE_URL}/node?mac_address={mac_address}", headers=headers)
+    response = requests.get(f"{FOG_SERVICE_URL}/provision?mac_address={mac_address}", headers=headers)
     if response.status_code == 200:
         return response.json()
     else:
