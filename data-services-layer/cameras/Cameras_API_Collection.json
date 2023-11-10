@@ -1,0 +1,97 @@
+{
+    "info": {
+      "_postman_id": "6d7a07f5-5118-4cc9-g664-0e1e43e48a7e",
+      "name": "Traffic Sentinel Camera API",
+      "description": "Postman collection for Traffic Sentinel Camera API",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+      {
+        "name": "Register Camera",
+        "request": {
+          "method": "POST",
+          "header": [],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n    \"camera_name\": \"TPAS-CCTV-I75-20172\",\n    \"region\": \"Alachua Noreste Florida\",\n    \"address\": \"US-10/US-98 @ NE 210th Ave\",\n    \"max_speed_limit\": 75,\n    \"camera_url\": \"your_camera_url\",\n    \"camera_url_params\": \"your_camera_url_params\",\n    \"camera_username\": \"your_camera_username\",\n    \"camera_password\": \"your_camera_password\"\n}"
+          },
+          "url": {
+            "raw": "http://localhost:5000/cameras/register",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["cameras", "register"]
+          }
+        },
+        "response": []
+      },
+      {
+        "name": "Update Camera",
+        "request": {
+          "method": "PUT",
+          "header": [],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n    \"camera_name\": \"TPAS-CCTV-I75-20172\",\n    \"region\": \"New Region\",\n    \"address\": \"New Address\",\n    \"max_speed_limit\": 80,\n    \"camera_url\": \"your_new_camera_url\",\n    \"camera_url_params\": \"your_new_camera_url_params\",\n    \"camera_username\": \"your_new_camera_username\",\n    \"camera_password\": \"your_new_camera_password\"\n}"
+          },
+          "url": {
+            "raw": "http://localhost:5000/cameras/update",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["cameras", "update"]
+          }
+        },
+        "response": []
+      },
+      {
+        "name": "Delete Camera",
+        "request": {
+          "method": "DELETE",
+          "header": [],
+          "url": {
+            "raw": "http://localhost:5000/cameras/delete/your_camera_id",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["cameras", "delete", "your_camera_id"]
+          }
+        },
+        "response": []
+      },
+      {
+        "name": "Get Frames",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "http://localhost:5000/your_camera_id/frames/list?start_time=2023-11-10T00:00:00&end_time=2023-11-11T00:00:00&page=1&page_size=10",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["your_camera_id", "frames", "list"]
+          }
+        },
+        "response": []
+      },
+      {
+        "name": "Save Frame",
+        "request": {
+          "method": "POST",
+          "header": [],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n    \"mac_address\": \"02:42:ac:11:00:02\",\n    \"processed_frame\": \"{...}\"  // Replace with your processed frame data\n}"
+          },
+          "url": {
+            "raw": "http://localhost:5000/frames/save",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["frames", "save"]
+          }
+        },
+        "response": []
+      }
+    ]
+  }  

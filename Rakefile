@@ -403,10 +403,11 @@ namespace :SmartHighwayNet do
 		task :build do
 			puts "Build data services layer ..."
 			image_info = [
-				{ name: "ssanchez11/smart_highway_net_auth_service:0.0.1", dockerfile: "./data-services-layer/auth/Dockerfile" },
+				{ name: "ssanchez11/smart_highway_net_fog_service:0.0.1", dockerfile: "./data-services-layer/fog/Dockerfile" },
 				{ name: "ssanchez11/smart_highway_net_provision_service:0.0.1", dockerfile: "./data-services-layer/provision/Dockerfile" },
 				{ name: "ssanchez11/smart_highway_net_notifier_service:0.0.1", dockerfile: "./data-services-layer/notifier/Dockerfile" },
-				{ name: "ssanchez11/smart_highway_net_vision_service:0.0.1", dockerfile: "./data-services-layer/vision/Dockerfile" }
+				{ name: "ssanchez11/smart_highway_net_cameras_service:0.0.1", dockerfile: "./data-services-layer/cameras/Dockerfile" },
+				{ name: "ssanchez11/smart_highway_net_users_service:0.0.1", dockerfile: "./data-services-layer/users/Dockerfile" }
 			]
 
 			image_info.each do |info|

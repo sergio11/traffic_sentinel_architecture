@@ -2,38 +2,38 @@ version: "3"
 
 services:
 
-  # Flask-based authentication service for authorization and authentication
-  auth_service_1:
-    image: ssanchez11/smart_highway_net_auth_service:0.0.1
-    container_name: auth-service-1
+  # Traffic SentinelFlask-based Fog API service
+  fog_service_1:
+    image: ssanchez11/smart_highway_net_fog_service:0.0.1
+    container_name: fog-service-1
     env_file:
       - ./.env
     networks:
       - smart-highway-net
 
-  # Flask-based authentication service for authorization and authentication
-  auth_service_2:
-    image: ssanchez11/smart_highway_net_auth_service:0.0.1
-    container_name: auth-service-2
+  # Traffic SentinelFlask-based Fog API service
+  fog_service_2:
+    image: ssanchez11/smart_highway_net_fog_service:0.0.1
+    container_name: fog-service-2
     env_file:
       - ./.env
     networks:
       - smart-highway-net
 
-  # Flask-based authentication service for authorization and authentication
-  auth_service_3:
-    image: ssanchez11/smart_highway_net_auth_service:0.0.1
-    container_name: auth-service-3
+  # Traffic SentinelFlask-based Fog API service
+  fog_service_3:
+    image: ssanchez11/smart_highway_net_fog_service:0.0.1
+    container_name: fog-service-3
     env_file:
       - ./.env
     networks:
       - smart-highway-net
 
-  auth_service_haproxy:
+  fog_service_haproxy:
     image: haproxytech/haproxy-alpine:2.7
-    container_name: auth-service-haproxy
+    container_name: fog-service-haproxy
     volumes:
-      - ./haproxy/auth/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./haproxy/fog/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     ports:
       - '5000:5000'
       - '1936:1936'
@@ -78,41 +78,79 @@ services:
     networks:
       - smart-highway-net
 
-  # VisionFrameAPI service
-  vision_service_1:
-    image: ssanchez11/smart_highway_net_vision_service:0.0.1
-    container_name: vision-service-1
+  # Traffic Sentinel Cameras API service
+  cameras_service_1:
+    image: ssanchez11/smart_highway_net_cameras_service:0.0.1
+    container_name: cameras-service-1
     env_file:
       - ./.env
     networks:
       - smart-highway-net
 
-  # VisionFrameAPI service
-  vision_service_2:
-    image: ssanchez11/smart_highway_net_vision_service:0.0.1
-    container_name: vision-service-2
+  # Traffic Sentinel Cameras API service
+  cameras_service_2:
+    image: ssanchez11/smart_highway_net_cameras_service:0.0.1
+    container_name: cameras-service-2
     env_file:
       - ./.env
     networks:
       - smart-highway-net
 
-  # VisionFrameAPI service
-  vision_service_3:
-    image: ssanchez11/smart_highway_net_vision_service:0.0.1
-    container_name: vision-service-3
+  # Traffic Sentinel Cameras API service
+  cameras_service_3:
+    image: ssanchez11/smart_highway_net_cameras_service:0.0.1
+    container_name: cameras-service-3
     env_file:
       - ./.env
     networks:
       - smart-highway-net
 
-  vision_service_haproxy:
+  cameras_service_haproxy:
     image: haproxytech/haproxy-alpine:2.7
-    container_name: vision-service-haproxy
+    container_name: cameras-service-haproxy
     volumes:
-      - ./haproxy/vision/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./haproxy/cameras/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     ports:
       - '5002:5002'
       - '1938:1938'
+    networks:
+      - smart-highway-net
+
+  # Traffic Sentinel Users API service
+  users_service_1:
+    image: ssanchez11/smart_highway_net_users_service:0.0.1
+    container_name: users-service-1
+    env_file:
+      - ./.env
+    networks:
+      - smart-highway-net
+
+  # Traffic Sentinel Users API service
+  users_service_2:
+    image: ssanchez11/smart_highway_net_users_service:0.0.1
+    container_name: users-service-2
+    env_file:
+      - ./.env
+    networks:
+      - smart-highway-net
+
+  # Traffic Sentinel Users API service
+  users_service_3:
+    image: ssanchez11/smart_highway_net_users_service:0.0.1
+    container_name: users-service-3
+    env_file:
+      - ./.env
+    networks:
+      - smart-highway-net
+
+  users_service_haproxy:
+    image: haproxytech/haproxy-alpine:2.7
+    container_name: users-service-haproxy
+    volumes:
+      - ./haproxy/users/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - '5003:5003'
+      - '1939:1939'
     networks:
       - smart-highway-net
 

@@ -1,0 +1,133 @@
+{
+    "info": {
+        "_postman_id": "c13e85c4-xxxx-xxxx-xxxx-5e4c18712345",
+        "name": "Traffic Sentinel Fog API",
+        "description": "Postman collection for Traffic Sentinel Fog API"
+    },
+    "item": [
+        {
+            "name": "Get CHAP Challenge",
+            "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"mac_address\": \"02:42:ac:11:00:02\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:5000/fog/get-challenge",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "fog",
+                        "get-challenge"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Get Node Password",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:5000/fog/get-password",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "fog",
+                        "get-password"
+                    ],
+                    "query": [
+                        {
+                            "key": "mac_address",
+                            "value": "02:42:ac:11:00:02"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Authenticate",
+            "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"mac_address\": \"02:42:ac:11:00:02\",\n    \"client_response\": \"your_client_response\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:5000/fog/authenticate",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "fog",
+                        "authenticate"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Check Session",
+            "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"mac_address\": \"02:42:ac:11:00:02\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:5000/fog/check-session",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "fog",
+                        "check-session"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Provision Camera",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "X-Session-ID",
+                        "value": "your_valid_session_id"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost:5000/fog/provision?mac_address=02:42:ac:11:00:02",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "fog",
+                        "provision"
+                    ],
+                    "query": [
+                        {
+                            "key": "mac_address",
+                            "value": "02:42:ac:11:00:02"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}
