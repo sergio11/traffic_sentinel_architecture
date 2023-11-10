@@ -52,25 +52,43 @@ def calculate_hash(file_path):
         logging.error("Error calculating hash: %s", e)
         return None
 
-def get_host_ip():
+def get_public_ip():
+    """
+    Retrieves the public IP address of the host using an external service.
+
+    Returns:
+        str or None: The public IP address or None if retrieval fails.
+    """
     try:
-        # Get the local host's IP address
-        host_name = socket.gethostname()
-        host_ip = socket.gethostbyname(host_name)
-        return host_ip
+        # Make a request to an external service to get the public IP
+        response = requests.get('https://httpbin.org/ip')
+        data = response.json()
+        return data.get('origin')
     except Exception as e:
-        print("Failed to obtain the IP address:", e)
+        # Log and handle exceptions if the retrieval fails
+        print(f"Failed to retrieve public IP: {e}")
         return None
 
 def get_gps_info(ip):
+    """
+    Retrieves GPS information for a given IP address using the "ipinfo.io" service.
+
+    Args:
+        ip (str): The IP address for which GPS information is to be retrieved.
+
+    Returns:
+        dict or None: GPS information in JSON format or None if retrieval fails.
+    """
     if ip:
         try:
             # Use the "ipinfo.io" geolocation service to retrieve GPS information
             url = f"https://ipinfo.io/{ip}/json"
+            logging.info("Get GPS information for IP: %s", ip)
             response = requests.get(url)
             data = response.json()
             return data
         except Exception as e:
+            # Log and handle exceptions if the retrieval fails
             print("Failed to obtain GPS information:", e)
     return None
 
@@ -102,7 +120,7 @@ def get_challenge(mac_address):
         str: Authentication challenge.
     """
     try:
-        response = requests.post(f"{AUTH_SERVICE_URL}/get_challenge", json={"mac_address": mac_address})
+        response = requests.post(f"{AUTH_SERVICE_URL}/nodes/get-challenge", json={"mac_address": mac_address})
         if response.status_code == 200:
             data = response.json()
             return data.get("challenge")
@@ -128,7 +146,7 @@ def authenticate_chap(mac_address, client_response):
     """
     try:
         global session_id  # Declare the global variable
-        response = requests.post(f"{AUTH_SERVICE_URL}/authenticate", json={"mac_address": mac_address, "client_response": client_response})
+        response = requests.post(f"{AUTH_SERVICE_URL}/nodes/authenticate", json={"mac_address": mac_address, "client_response": client_response})
         if response.status_code == 200:
             auth_data = response.json()
             session_id = auth_data.get("session_id")  # Retrieve the session_id from the response
@@ -276,7 +294,7 @@ def authenticate(mac_address):
 
         challenge = get_challenge(mac_address)
         if challenge:
-            password_response = requests.get(f"{PROVISIONING_SERVICE_URL}/get-fog-password?mac_address={mac_address}")
+            password_response = requests.get(f"{AUTH_SERVICE_URL}/nodes/get-password?mac_address={mac_address}")
             if password_response.status_code == 200:
                 password_data = password_response.json()
                 node_password = password_data.get("fog_password")
@@ -289,9 +307,9 @@ def authenticate(mac_address):
                     else:
                         logging.error("Authentication failed using CHAP")
                 else:
-                    logging.error("Error retrieving node password from provisioning service")
+                    logging.error("Error retrieving node password from auth service")
             else:
-                logging.error("Error getting node password from provisioning service")
+                logging.error("Error getting node password from auth service")
         else:
             logging.error("Error getting challenge")
     except Exception as e:
@@ -333,7 +351,7 @@ def get_provisioning_data(session_id):
     headers = {
         "X-Session-Id": session_id
     }
-    response = requests.get(f"{PROVISIONING_SERVICE_URL}/provision?mac_address={mac_address}", headers=headers)
+    response = requests.get(f"{PROVISIONING_SERVICE_URL}/node?mac_address={mac_address}", headers=headers)
     if response.status_code == 200:
         return response.json()
     else:
@@ -348,20 +366,14 @@ def start_frame_capture(mac_address, full_camera_url):
 
 # Function to send GPS information
 def send_gps_information():
-    ip = get_host_ip()
+    ip = get_public_ip()
     if ip:
-        print(f"Host's IP address: {ip}")
+        print(f"Public IP address: {ip}")
         gps_info = get_gps_info(ip)
         if gps_info:
             print("GPS Information:")
             print(f"Location: {gps_info.get('city')}, {gps_info.get('region')}, {gps_info.get('country')}")
             print(f"Latitude/Longitude: {gps_info.get('loc')}")
-            # Send GPS information to the /update-gps-info endpoint
-            response = requests.post(f"{PROVISIONING_SERVICE_URL}/update-gps-info", json={"mac_address": mac_address, "gps_info": gps_info})
-            if response.status_code == 200:
-                logging.info("GPS information sent successfully.")
-            else:
-                logging.error(f"Error sending GPS information. Status code: {response.status_code}")
         else:
             print("Failed to obtain GPS information.")
     else:
