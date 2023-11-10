@@ -3,13 +3,116 @@ version: "3"
 services:
 
   # Flask-based authentication service for authorization and authentication
-  auth_service:
+  auth_service_1:
     image: ssanchez11/smart_highway_net_auth_service:0.0.1
-    container_name: auth-service
+    container_name: auth-service-1
     env_file:
       - ./.env
+    networks:
+      - smart-highway-net
+
+  # Flask-based authentication service for authorization and authentication
+  auth_service_2:
+    image: ssanchez11/smart_highway_net_auth_service:0.0.1
+    container_name: auth-service-2
+    env_file:
+      - ./.env
+    networks:
+      - smart-highway-net
+
+  # Flask-based authentication service for authorization and authentication
+  auth_service_3:
+    image: ssanchez11/smart_highway_net_auth_service:0.0.1
+    container_name: auth-service-3
+    env_file:
+      - ./.env
+    networks:
+      - smart-highway-net
+
+  auth_service_haproxy:
+    image: haproxytech/haproxy-alpine:2.7
+    container_name: auth-service-haproxy
+    volumes:
+      - ./haproxy/auth/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     ports:
-      - "5000:5000"  # Map container port 5000 to host port 5000
+      - '5000:5000'
+      - '1936:1936'
+    networks:
+      - smart-highway-net
+
+  # Provision service for setting up configurations
+  provision_service_1:
+    image: ssanchez11/smart_highway_net_provision_service:0.0.1
+    container_name: provision-service-1
+    env_file:
+      - ./.env
+    networks:
+      - smart-highway-net
+
+  # Provision service for setting up configurations
+  provision_service_2:
+    image: ssanchez11/smart_highway_net_provision_service:0.0.1
+    container_name: provision-service-2
+    env_file:
+      - ./.env
+    networks:
+      - smart-highway-net
+
+  # Provision service for setting up configurations
+  provision_service_3:
+    image: ssanchez11/smart_highway_net_provision_service:0.0.1
+    container_name: provision-service-3
+    env_file:
+      - ./.env
+    networks:
+      - smart-highway-net
+
+  provision_service_haproxy:
+    image: haproxytech/haproxy-alpine:2.7
+    container_name: provision-service-haproxy
+    volumes:
+      - ./haproxy/provision/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - '5001:5001'
+      - '1937:1937'
+    networks:
+      - smart-highway-net
+
+  # VisionFrameAPI service
+  vision_service_1:
+    image: ssanchez11/smart_highway_net_vision_service:0.0.1
+    container_name: vision-service-1
+    env_file:
+      - ./.env
+    networks:
+      - smart-highway-net
+
+  # VisionFrameAPI service
+  vision_service_2:
+    image: ssanchez11/smart_highway_net_vision_service:0.0.1
+    container_name: vision-service-2
+    env_file:
+      - ./.env
+    networks:
+      - smart-highway-net
+
+  # VisionFrameAPI service
+  vision_service_3:
+    image: ssanchez11/smart_highway_net_vision_service:0.0.1
+    container_name: vision-service-3
+    env_file:
+      - ./.env
+    networks:
+      - smart-highway-net
+
+  vision_service_haproxy:
+    image: haproxytech/haproxy-alpine:2.7
+    container_name: vision-service-haproxy
+    volumes:
+      - ./haproxy/vision/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - '5002:5002'
+      - '1938:1938'
     networks:
       - smart-highway-net
 
@@ -22,29 +125,6 @@ services:
     networks:
       - smart-highway-net
 
-  # Provision service for setting up configurations
-  provision:
-    image: ssanchez11/smart_highway_net_provision_service:0.0.1
-    container_name: provision-service
-    env_file:
-      - ./.env
-    ports:
-      - "5001:5001"  # Map container port 5001 to host port 5001
-    networks:
-      - smart-highway-net
-
-  # VisionFrameAPI service
-  vision:
-    image: ssanchez11/smart_highway_net_vision_service:0.0.1
-    container_name: vision-service
-    env_file:
-      - ./.env
-    ports:
-      - "5002:5002"  # Map container port 5001 to host port 5001
-    networks:
-      - smart-highway-net
-
-# Define a custom bridge network for the services to communicate
 networks:
   smart-highway-net:
-    driver: bridge  # Use the bridge network driver
+    driver: bridge

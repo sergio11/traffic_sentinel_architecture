@@ -1,3 +1,4 @@
+import threading
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, emit
 from confluent_kafka import Consumer, KafkaError
@@ -65,7 +66,7 @@ def register(mac_address):
 def _is_valid_mac_address(mac_address):
     # Define a regular expression pattern for a MAC address in the form "00:1A:2B:3C:4D:5E"
     pattern = re.compile(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$')
-    return bool(pattern.match(mac_address)
+    return bool(pattern.match(mac_address))
 
 if __name__ == '__main__':
     # Start consuming Kafka events
