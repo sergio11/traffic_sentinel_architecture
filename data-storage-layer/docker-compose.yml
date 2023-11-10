@@ -90,14 +90,14 @@ services:
     networks:
       - smart-highway-net
 
-  haproxy:
+  minio_haproxy:
     image: haproxytech/haproxy-alpine:2.7
     container_name: minio_haproxy
     volumes:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     ports:
       - '9000:9000'
-      - '1936:1936'
+      - '1939:1939'
     networks:
       - smart-highway-net
 
