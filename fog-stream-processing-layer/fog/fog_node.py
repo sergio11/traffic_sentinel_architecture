@@ -28,9 +28,10 @@ RETRY_DELAY = int(os.environ.get("RETRY_DELAY", 10))
 CAPTURE_INTERVAL = 0.3 
 
 mac_address = ""
+camera_id = ""
 
 # Function to calculate the SHA-256 hash of a file
-def calculate_hash(file_path):
+def calculate_fog_node_hash(file_path):
     """
     Calculate the SHA-256 hash of a file.
 
@@ -129,8 +130,7 @@ def get_challenge(mac_address):
         logging.error("Error getting challenge: %s", e)
         return None
 
-
-# Function to authenticate using CHAP (Challenge-Handshake Authentication Protocol)
+# Function to authenticate using CHAP (Challenge-Handshake Authentication Protocol)    
 def authenticate_chap(mac_address, client_response):
     """
     Authenticate using CHAP (Challenge-Handshake Authentication Protocol).
@@ -143,8 +143,23 @@ def authenticate_chap(mac_address, client_response):
         str: Session ID if authentication is successful, None otherwise.
     """
     try:
-        global session_id  # Declare the global variable
-        response = requests.post(f"{FOG_SERVICE_URL}/authenticate", json={"mac_address": mac_address, "client_response": client_response})
+        # Get GPS information, coordinates, and public IP
+        public_ip = get_public_ip()
+        gps_info = get_gps_info(public_ip)
+
+        # Construct the JSON request including GPS information to record session data
+        auth_data = {
+            "mac_address": mac_address,
+            "client_response": client_response,
+            "public_ip": public_ip,
+            "coords": gps_info.get("loc") if gps_info else None,
+            "location_address": gps_info.get("city") if gps_info else None
+        }
+
+        # Send the authentication request to the Fog service endpoint
+        response = requests.post(f"{FOG_SERVICE_URL}/authenticate", json=auth_data)
+
+        # Check the response status and retrieve the session ID if successful
         if response.status_code == 200:
             auth_data = response.json()
             session_id = auth_data.get("session_id")  # Retrieve the session_id from the response
@@ -211,6 +226,7 @@ def send_frame_over_mqtt(timestamp, mac_address):
                 # Construct the payload to be sent over MQTT
                 payload = {
                     "mac_address": mac_address,
+                    "camera_id": camera_id,
                     "timestamp": timestamp,
                     "frame_data": base64_frame
                 }
@@ -241,7 +257,13 @@ def frame_capture_loop(mac_address, camera_url):
         mac_address (str): MAC address of the device.
         camera_url (str): URL of the camera feed.
     """
+    logging.info("Opening video source: %s", camera_url)
+
     cap = cv2.VideoCapture(camera_url)
+
+    if not cap.isOpened():
+        logging.error("Failed to open video source: %s", camera_url)
+        return
 
     while cap.isOpened():
         start_time = time.time()
@@ -287,7 +309,7 @@ def authenticate(mac_address):
     """
     try:
         code_file_path = os.path.abspath(__file__)
-        code_hash = calculate_hash(code_file_path)
+        code_hash = calculate_fog_node_hash(code_file_path)
         logging.info("Hash value of this code: %s", code_hash)  # Log code hash
 
         challenge = get_challenge(mac_address)
@@ -351,7 +373,7 @@ def get_provisioning_data(session_id):
     }
     response = requests.get(f"{FOG_SERVICE_URL}/provision?mac_address={mac_address}", headers=headers)
     if response.status_code == 200:
-        return response.json()
+        return response.json()['data']
     else:
         logging.error(f"Error retrieving provisioning data. Status code: {response.status_code}")
         logging.error(f"Error response content: {response.text}")
@@ -361,22 +383,6 @@ def get_provisioning_data(session_id):
 def start_frame_capture(mac_address, full_camera_url):
     capture_thread = Thread(target=frame_capture_loop, args=(mac_address, full_camera_url))
     capture_thread.start()
-
-# Function to send GPS information
-def send_gps_information():
-    ip = get_public_ip()
-    if ip:
-        print(f"Public IP address: {ip}")
-        gps_info = get_gps_info(ip)
-        if gps_info:
-            print("GPS Information:")
-            print(f"Location: {gps_info.get('city')}, {gps_info.get('region')}, {gps_info.get('country')}")
-            print(f"Latitude/Longitude: {gps_info.get('loc')}")
-        else:
-            print("Failed to obtain GPS information.")
-    else:
-        print("Failed to obtain the host's IP address")
-
     
 # Initialize the MQTT client and set up callbacks
 client = mqtt.Client()
@@ -390,6 +396,7 @@ client.loop_start()
 # Main function
 def main():
     global mac_address
+    global camera_id
     mac_address = get_mac_address()
 
     if mac_address is None:
@@ -399,20 +406,40 @@ def main():
         os.makedirs(FRAMES_OUTPUT_DIRECTORY)
 
     provisioning_data = perform_provisioning(mac_address)
-    if provisioning_data:
-        camera_url = provisioning_data.get("camera_url")
-        camera_url_params = provisioning_data.get("camera_url_params")
-        camera_username = provisioning_data.get("camera_username")
-        camera_password = provisioning_data.get("camera_password")
-        # Combine camera_url and camera_url_params
-        full_camera_url = f"{camera_url}?{camera_url_params}"
-        # Add username and password to the URL if available
-        if camera_username and camera_password:
-            credentials = f"{camera_username}:{camera_password}"
-            base64_credentials = base64.b64encode(credentials.encode()).decode('utf-8')
-            full_camera_url = f"{full_camera_url}@{base64_credentials}"
-        start_frame_capture(mac_address, full_camera_url)
-        send_gps_information()
+
+    # Validate the provisioning data
+    if (
+        not provisioning_data
+        or not isinstance(provisioning_data.get("camera_id"), str)
+        or not provisioning_data.get("camera_id")
+        or not isinstance(provisioning_data.get("camera_url"), str)
+    ):
+        logging.error("Invalid or missing camera information in provisioning data. Aborting.")
+        return
+    
+    camera_id = provisioning_data.get("camera_id")
+    camera_url = provisioning_data.get("camera_url")
+    camera_url_params = provisioning_data.get("camera_url_params")
+    camera_username = provisioning_data.get("camera_username")
+    camera_password = provisioning_data.get("camera_password")
+
+    # Validate camera URL
+    if not camera_url.startswith("http://") and not camera_url.startswith("https://"):
+        logging.error("Invalid camera URL format. Aborting.")
+        return
+
+    # Combine camera_url and camera_url_params
+    full_camera_url = f"{camera_url}?{camera_url_params}"
+    # Add username and password to the URL if available
+    if camera_username and camera_password:
+        credentials = f"{camera_username}:{camera_password}"
+        base64_credentials = base64.b64encode(credentials.encode()).decode('utf-8')
+        full_camera_url = f"{full_camera_url}@{base64_credentials}"
+
+    # Log successful provisioning
+    logging.info("Provisioning completed successfully. Camera ID: %s", camera_id)
+    start_frame_capture(mac_address, full_camera_url)
+    
 
 # Entry point of the script
 if __name__ == "__main__":

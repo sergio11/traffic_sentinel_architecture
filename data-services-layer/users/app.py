@@ -2,7 +2,7 @@ import logging
 
 from common.helpers import generate_response
 from common.requires_authentication_decorator import requires_authentication
-from flask import Flask, request, jsonify
+from flask import Flask, request
 import hashlib
 import os
 import jwt
@@ -63,7 +63,7 @@ def register_user():
         result = db.users.insert_one(new_user)
 
         if result.inserted_id:
-            return generate_response("success", "User registered successfully")
+            return generate_response("success", "User registered successfully"), 201
         else:
             return generate_response("error", "User registration failed"), 500
 
