@@ -150,7 +150,7 @@ services:
       - ./haproxy/users/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     ports:
       - '5003:5003'
-      - '1939:1939'
+      - '1940:1940'
     networks:
       - smart-highway-net
 

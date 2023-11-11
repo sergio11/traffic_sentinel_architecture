@@ -1,13 +1,15 @@
 import base64
 import io
 import logging
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from pymongo import MongoClient
 import os
 from datetime import datetime
 from common.requires_authentication_decorator import requires_authentication
 from minio import Minio
 from common.helpers import generate_response
+import uuid
+from bson import ObjectId
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -79,7 +81,7 @@ def register_camera():
         db.cameras.insert_one(data)
 
         # Retrieve the newly registered camera information
-        new_camera_info = db.cameras.find_one({"camera_name": data["camera_name"]}, {"_id": 0})
+        new_camera_info = db.cameras.find_one({"camera_name": data["camera_name"]})
 
         logger.info("Camera registered successfully.")
         return generate_response("success", "Camera registered successfully", camera=new_camera_info), 200
@@ -137,7 +139,7 @@ def update_camera():
         db.cameras.update_one({"camera_name": camera_name}, {"$set": updated_data})
 
         # Retrieve the updated camera information
-        updated_camera_info = db.cameras.find_one({"camera_name": camera_name}, {"_id": 0})
+        updated_camera_info = db.cameras.find_one({"camera_name": camera_name})
 
         logger.info("Camera information updated successfully.")
         return generate_response("success", "Camera information updated successfully", camera=updated_camera_info), 200
@@ -167,19 +169,19 @@ def delete_camera(camera_id):
         logger.info("Received DELETE request for deleting a camera.")
         
         # Check if the camera exists
-        existing_camera = db.cameras.find_one({"camera_id": camera_id})
+        existing_camera = db.cameras.find_one({"_id": ObjectId(camera_id)})
         if not existing_camera:
             logger.warning("Camera not found.")
             return generate_response("error", "Camera not found"), 404
 
         # Check if the camera is linked in the provisioning collection
-        linked_provisioning = db.provisioning.find_one({"camera_id": camera_id})
+        linked_provisioning = db.provisioning.find_one({"camera_id": ObjectId(camera_id)})
         if linked_provisioning:
             logger.warning("Camera is linked to a provisioning node and cannot be deleted.")
             return generate_response("error", "Camera is linked to a provisioning node and cannot be deleted"), 409
 
         # Delete the camera
-        db.cameras.delete_one({"camera_id": camera_id})
+        db.cameras.delete_one({"_id": ObjectId(camera_id)})
 
         logger.info("Camera deleted successfully.")
         return generate_response("success", "Camera deleted successfully"), 200
@@ -227,11 +229,11 @@ def get_frames(camera_id):
         end_time = datetime.fromisoformat(end_time)
 
         query = {
-            "camera_id": camera_id,
+            "camera_id": ObjectId(camera_id),
             "timestamp": {"$gte": start_time, "$lte": end_time}
         }
 
-        frames = list(db.frames.find(query, {"_id": 0}).skip((page - 1) * page_size).limit(page_size))
+        frames = list(db.frames.find(query).skip((page - 1) * page_size).limit(page_size))
 
         logger.debug(f"Retrieved frames: {frames}")
 
@@ -252,33 +254,46 @@ def save_frame():
 
     Parameters:
     - mac_address (string): MAC address of the camera.
+    - camera_id (string): ID of the camera.
     - processed_frame (string): JSON string containing processed frame information.
 
     Returns:
     - 200 OK: Frame processed successfully.
-    - 400 Bad Request: Missing required data.
+    - 400 Bad Request: Missing required data or invalid camera_id.
+    - 401 Unauthorized: Camera or provisioning not enabled.
     - 500 Internal Server Error: Error processing the frame.
     """
     try:
         logger.info("Received POST request for saving frames.")
         data = request.json
         mac_address = data.get("mac_address")
+        camera_id = data.get("camera_id")
         processed_frame = eval(data.get("processed_frame"))  # Use eval to convert string to dictionary
 
-        if not (mac_address and processed_frame):
+        if not (mac_address and camera_id and processed_frame):
             logger.warning("Missing required data.")
             return generate_response("error", "Missing required data"), 400
 
-        logger.debug(f"Request data: mac_address={mac_address}")
+        logger.debug(f"Request data: mac_address={mac_address}, camera id={camera_id}")
+
+        # Validate camera_id in the collection of cameras
+        if not _is_camera_valid(camera_id):
+            logger.warning(f"Invalid camera_id: {camera_id}")
+            return generate_response("error", "Invalid camera_id"), 400
+
+        # Validate camera_id and mac_address in the collection of provisioning with status "enabled"
+        if not _is_provisioning_enabled(mac_address, camera_id):
+            logger.warning(f"Camera or provisioning not enabled for mac_address={mac_address}, camera_id={camera_id}")
+            return generate_response("error", "Camera or provisioning not enabled"), 401
 
         timestamp = datetime.now()
 
         # Save the images to MinIO and get the URLs
-        processed_frame["annotated_frame_name"] = save_image_to_minio(processed_frame["annotated_frame_base64"])
-        processed_frame["original_frame_name"] = save_image_to_minio(processed_frame["original_frame_base64"])
+        processed_frame["annotated_frame_name"] = _save_image_to_minio(processed_frame["annotated_frame_base64"])
+        processed_frame["original_frame_name"] = _save_image_to_minio(processed_frame["original_frame_base64"])
 
         for vehicle in processed_frame["detected_vehicles"]:
-            vehicle["vehicle_frame_name"] = save_image_to_minio(vehicle["vehicle_frame_base64"])
+            vehicle["vehicle_frame_name"] = _save_image_to_minio(vehicle["vehicle_frame_base64"])
 
         processed_frame.pop("annotated_frame_base64", None)
         processed_frame.pop("original_frame_base64", None)
@@ -288,6 +303,7 @@ def save_frame():
 
         db.frames.insert_one({
             "mac_address": mac_address,
+            "camera_id": camera_id,
             "processed_timestamp": timestamp,
             "processed_frame": processed_frame
         })
@@ -299,13 +315,24 @@ def save_frame():
         logger.error(f"Error in save_frame: {str(e)}")
         return generate_response("error", "Error processing frame"), 500
 
+def _is_camera_valid(camera_id):
+    camera = db.cameras.find_one({"_id": ObjectId(camera_id)})
+    return camera is not None
 
-def save_image_to_minio(base64_data):
+def _is_provisioning_enabled(mac_address, camera_id):
+    provisioning = db.provisioning.find_one({
+        "mac_address": mac_address,
+        "camera_id": ObjectId(camera_id),
+        "status": "enabled"
+    })
+    return provisioning is not None
+
+def _save_image_to_minio(base64_data):
     # Decode the Base64 data
     image_data = base64.b64decode(base64_data)
 
-    # Generate a unique object name in MinIO
-    object_name = f"{datetime.now().isoformat()}.jpg"
+    # Generate a unique object name in MinIO using UUID
+    object_name = f"{uuid.uuid4()}.jpg"
 
     # Initialize MinIO client
     minio_client = Minio(MINIO_ENDPOINT, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=False)
