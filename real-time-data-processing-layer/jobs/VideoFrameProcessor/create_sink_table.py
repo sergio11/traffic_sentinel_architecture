@@ -15,6 +15,8 @@ def create_sink_table(t_env):
         f"""
         CREATE TABLE IF NOT EXISTS VideoFramesProcessed (
             mac_address STRING,
+            camera_id STRING,
+            frame_timestamp BIGINT,
             processed_frame STRING
         ) WITH (
             'connector' = 'kafka',

@@ -227,7 +227,7 @@ def send_frame_over_mqtt(timestamp, mac_address):
                 payload = {
                     "mac_address": mac_address,
                     "camera_id": camera_id,
-                    "timestamp": timestamp,
+                    "frame_timestamp": timestamp,
                     "frame_data": base64_frame
                 }
 
@@ -295,6 +295,7 @@ def frame_capture_loop(mac_address, camera_url):
 
     # Release the video capture object
     cap.release()
+
 
 # Function to authenticate the device
 def authenticate(mac_address):

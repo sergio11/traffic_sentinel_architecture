@@ -17,6 +17,10 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 # Set the working directory to the Flink installation directory
 WORKDIR /opt/flink
 
+# Install Apache Flink dependencies
+RUN pip install apache-flink==1.18.0
+RUN pip install apache-flink-libraries==1.18.0
+
 # Copy connectors from the connectors directory
 COPY ../connectors/flink-connector-kafka-1.17.1.jar ./lib/
 COPY ../connectors/kafka-clients-3.5.1.jar ./lib/

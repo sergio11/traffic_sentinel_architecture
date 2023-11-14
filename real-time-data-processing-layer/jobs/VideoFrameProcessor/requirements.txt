@@ -1,3 +1,1 @@
-apache-flink==1.18.0
-apache-flink-libraries==1.18.0
 VehicleDetectionTracker==0.0.29
