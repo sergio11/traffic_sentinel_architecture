@@ -230,7 +230,7 @@ def get_frames(camera_id):
 
         query = {
             "camera_id": ObjectId(camera_id),
-            "timestamp": {"$gte": start_time, "$lte": end_time}
+            "frame_timestamp": {"$gte": start_time, "$lte": end_time}
         }
 
         frames = list(db.frames.find(query).skip((page - 1) * page_size).limit(page_size))
@@ -268,16 +268,20 @@ def save_frame():
         data = request.json
         mac_address = data.get("mac_address")
         camera_id = data.get("camera_id")
+        timestamp = data.get("frame_timestamp")
         processed_frame = eval(data.get("processed_frame"))  # Use eval to convert string to dictionary
 
-        if not (mac_address and camera_id and processed_frame):
+        if not (mac_address and camera_id and timestamp and processed_frame):
             logger.warning("Missing required data.")
             return generate_response("error", "Missing required data"), 400
 
         logger.debug(f"Request data: mac_address={mac_address}, camera id={camera_id}")
 
+        # Find the camera in the database by its ID
+        camera = db.cameras.find_one({"_id": ObjectId(camera_id)})
+
         # Validate camera_id in the collection of cameras
-        if not _is_camera_valid(camera_id):
+        if camera is None:
             logger.warning(f"Invalid camera_id: {camera_id}")
             return generate_response("error", "Invalid camera_id"), 400
 
@@ -286,25 +290,34 @@ def save_frame():
             logger.warning(f"Camera or provisioning not enabled for mac_address={mac_address}, camera_id={camera_id}")
             return generate_response("error", "Camera or provisioning not enabled"), 401
 
-        timestamp = datetime.now()
+        max_speed_allowed = camera.get("max_speed_limit")
+        processed_timestamp = datetime.now()
 
         # Save the images to MinIO and get the URLs
         processed_frame["annotated_frame_name"] = _save_image_to_minio(processed_frame["annotated_frame_base64"])
         processed_frame["original_frame_name"] = _save_image_to_minio(processed_frame["original_frame_base64"])
 
+        # Process vehicles in the frame
         for vehicle in processed_frame["detected_vehicles"]:
             vehicle["vehicle_frame_name"] = _save_image_to_minio(vehicle["vehicle_frame_base64"])
+            vehicle_speed = vehicle.get("speed_info", {}).get("kph", 0)
+            # Mark vehicles that exceed the maximum speed limit
+            if vehicle_speed > max_speed_allowed:
+                vehicle["exceeded_max_speed"] = True
 
+        # Remove base64 data to reduce payload size
         processed_frame.pop("annotated_frame_base64", None)
         processed_frame.pop("original_frame_base64", None)
 
         for vehicle in processed_frame["detected_vehicles"]:
             vehicle.pop("vehicle_frame_base64", None)
 
+        # Insert processed frame data into the database
         db.frames.insert_one({
             "mac_address": mac_address,
             "camera_id": camera_id,
-            "processed_timestamp": timestamp,
+            "frame_timestamp": timestamp,
+            "processed_timestamp": processed_timestamp,
             "processed_frame": processed_frame
         })
 
@@ -315,29 +328,29 @@ def save_frame():
         logger.error(f"Error in save_frame: {str(e)}")
         return generate_response("error", "Error processing frame"), 500
 
-def _is_camera_valid(camera_id):
-    camera = db.cameras.find_one({"_id": ObjectId(camera_id)})
-    return camera is not None
-
+# Function to check if provisioning is enabled for a specific MAC address and camera
 def _is_provisioning_enabled(mac_address, camera_id):
+    # Find provisioning in the database by MAC address, camera ID, and enabled status
     provisioning = db.provisioning.find_one({
         "mac_address": mac_address,
         "camera_id": ObjectId(camera_id),
         "status": "enabled"
     })
+    # Return True if provisioning is enabled, otherwise False
     return provisioning is not None
 
+# Function to save an image to MinIO
 def _save_image_to_minio(base64_data):
-    # Decode the Base64 data
+    # Decode the image's Base64 data
     image_data = base64.b64decode(base64_data)
 
     # Generate a unique object name in MinIO using UUID
     object_name = f"{uuid.uuid4()}.jpg"
 
-    # Initialize MinIO client
+    # Initialize the MinIO client
     minio_client = Minio(MINIO_ENDPOINT, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=False)
 
-    # Check if the MinIO bucket exists; create if not
+    # Check if the MinIO bucket exists; create it if it doesn't exist
     bucket_exists = minio_client.bucket_exists(MINIO_BUCKET)
     if not bucket_exists:
         logger.info(f"Bucket '{MINIO_BUCKET}' does not exist; creating...")
@@ -346,6 +359,7 @@ def _save_image_to_minio(base64_data):
     # Store the image in MinIO
     minio_client.put_object(MINIO_BUCKET, object_name, io.BytesIO(image_data), len(image_data))
 
+    # Return the name of the object saved in MinIO
     return object_name
 
 

@@ -62,9 +62,11 @@ def main():
     t_env.from_path("VideoFramesReceived") \
         .select(
             col("mac_address"), 
+            col("camera_id"),
+            col("frame_timestamp"),
             call("frame_processor", 
                 col("frame_data"),
-                col("event_time") 
+                col("frame_timestamp") 
             ).cast(DataTypes.STRING())
             ) \
         .execute_insert("VideoFramesProcessed").wait()
