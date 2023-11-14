@@ -21,6 +21,7 @@ import redis
 import paho.mqtt.client as mqtt
 import threading
 import os
+import time
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
@@ -83,7 +84,7 @@ redis_thread.start()
 
 try:
     while True:
-        pass
+        time.sleep(1)
 except KeyboardInterrupt:
     logging.debug("Exiting...")
     redis_thread.join()  # Wait for the Redis thread to finish
