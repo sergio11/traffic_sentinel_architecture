@@ -9,7 +9,7 @@ import hashlib
 import uuid
 import re
 import requests
-from threading import Thread
+from threading import Thread, Event
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -29,6 +29,31 @@ CAPTURE_INTERVAL = 0.3
 
 mac_address = ""
 camera_id = ""
+
+# Define an event to control the state of the capture thread
+stop_capture_event = Event()
+# Variable to keep track of the capture thread state
+capture_thread = None
+
+# Function to start the frame capture thread
+def start_frame_capture(mac_address, full_camera_url):
+    global stop_capture_event, capture_thread
+    if not stop_capture_event.is_set():
+        capture_thread = Thread(target=frame_capture_loop, args=(mac_address, full_camera_url))
+        capture_thread.start()
+    else:
+        logging.warning("The capture thread is already stopped.")
+
+# Function to stop frame capture thread
+def stop_frame_capture():
+    global stop_capture_event, capture_thread
+    if capture_thread and capture_thread.is_alive():
+        # If the capture thread is running, set the event to stop it
+        stop_capture_event.set()
+        capture_thread.join()
+        capture_thread = None
+    else:
+        logging.warning("No active capture thread to stop.")
 
 # Function to calculate the SHA-256 hash of a file
 def calculate_fog_node_hash(file_path):
@@ -200,7 +225,7 @@ def on_message(client, userdata, message):
         payload = message.payload.decode("utf-8")
         if topic == "__keyevent@0__:expired" and mac_address in payload:
             logging.info("Received session expiration notification. Re-authenticating...")
-            authenticate(mac_address)
+            initialize_fog_node(mac_address)
     except Exception as e:
         logging.error("Error handling MQTT message: %s", e)
 
@@ -265,7 +290,7 @@ def frame_capture_loop(mac_address, camera_url):
         logging.error("Failed to open video source: %s", camera_url)
         return
 
-    while cap.isOpened():
+    while cap.isOpened() and not stop_capture_event.is_set():
         start_time = time.time()
         success, frame = cap.read()
         
@@ -278,8 +303,8 @@ def frame_capture_loop(mac_address, camera_url):
             cv2.imwrite(frame_path, frame)
 
             # Launch the send_frame_over_mqtt function in a separate thread
-            mqtt_thread = Thread(target=send_frame_over_mqtt, args=(timestamp, mac_address))
-            mqtt_thread.start()
+            send_thread = Thread(target=send_frame_over_mqtt, args=(timestamp, mac_address))
+            send_thread.start()
 
         else:
             logging.error("Error capturing the image using OpenCV")
@@ -362,13 +387,13 @@ def authenticate_with_retries(mac_address):
 def perform_provisioning(mac_address):
     session_id = authenticate_with_retries(mac_address)
     if session_id:
-        return get_provisioning_data(session_id)
+        return get_provisioning_data(session_id, mac_address)
     else:
         logging.error("Error authenticating fog node with MAC %s", mac_address)
         return None
 
 # Function to get provisioning data
-def get_provisioning_data(session_id):
+def get_provisioning_data(session_id, mac_address):
     headers = {
         "X-Session-Id": session_id
     }
@@ -380,28 +405,10 @@ def get_provisioning_data(session_id):
         logging.error(f"Error response content: {response.text}")
         return None
 
-# Function to start frame capture thread
-def start_frame_capture(mac_address, full_camera_url):
-    capture_thread = Thread(target=frame_capture_loop, args=(mac_address, full_camera_url))
-    capture_thread.start()
-    
-# Initialize the MQTT client and set up callbacks
-client = mqtt.Client()
-client.username_pw_set(username=MQTT_BROKER_USERNAME, password=MQTT_BROKER_PASSWORD)
-client.on_connect = on_connect
-client.on_message = on_message
-client.connect(MQTT_BROKER, MQTT_PORT, 60)
-client.subscribe(MQTT_REAUTH_TOPIC)
-client.loop_start()
+def initialize_fog_node(mac_address):
+    stop_frame_capture()
 
-# Main function
-def main():
-    global mac_address
     global camera_id
-    mac_address = get_mac_address()
-
-    if mac_address is None:
-        mac_address = str(uuid.uuid4())
 
     if not os.path.exists(FRAMES_OUTPUT_DIRECTORY):
         os.makedirs(FRAMES_OUTPUT_DIRECTORY)
@@ -441,7 +448,24 @@ def main():
     logging.info("Provisioning completed successfully. Camera ID: %s", camera_id)
     start_frame_capture(mac_address, full_camera_url)
     
+# Initialize the MQTT client and set up callbacks
+client = mqtt.Client()
+client.username_pw_set(username=MQTT_BROKER_USERNAME, password=MQTT_BROKER_PASSWORD)
+client.on_connect = on_connect
+client.on_message = on_message
+client.connect(MQTT_BROKER, MQTT_PORT, 60)
+client.subscribe(MQTT_REAUTH_TOPIC)
+client.loop_start()
 
+# Main function
+def main():
+    mac_address = get_mac_address()
+
+    if mac_address is None:
+        mac_address = str(uuid.uuid4())
+
+    initialize_fog_node(mac_address)
+    
 # Entry point of the script
 if __name__ == "__main__":
     main()
