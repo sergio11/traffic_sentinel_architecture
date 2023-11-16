@@ -82,7 +82,7 @@ The Traffic Sentinel system comprises the following components:
 
 ![Screenshot 10](doc/screenshots/screenshot_10.PNG)
 ![Screenshot 11](doc/screenshots/screenshot_11.PNG)
-
+![Screenshot 12](doc/screenshots/screenshot_15.PNG)
 ## Contributing
 
 Contributions are welcome! If you'd like to contribute to Traffic Sentinel, please follow the guidelines in [CONTRIBUTING.md](CONTRIBUTING.md).
