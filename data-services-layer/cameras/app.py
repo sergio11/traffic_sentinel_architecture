@@ -1,7 +1,7 @@
 import base64
 import io
 import logging
-from flask import Flask, request
+from flask import Flask, request, send_file
 from pymongo import MongoClient
 import os
 from datetime import datetime
@@ -175,7 +175,7 @@ def delete_camera(camera_id):
             return generate_response("error", "Camera not found"), 404
 
         # Check if the camera is linked in the provisioning collection
-        linked_provisioning = db.provisioning.find_one({"camera_id": ObjectId(camera_id)})
+        linked_provisioning = db.provisioning.find_one({"camera_id": camera_id})
         if linked_provisioning:
             logger.warning("Camera is linked to a provisioning node and cannot be deleted.")
             return generate_response("error", "Camera is linked to a provisioning node and cannot be deleted"), 409
@@ -195,7 +195,7 @@ def delete_camera(camera_id):
 @requires_authentication()
 def get_frames(camera_id):
     """
-    Retrieves a list of frames for a specific camera within a time range.
+    Retrieves a list of frames for a specific camera within a specified time range. Optionally, frames can be filtered based on vehicles that exceeded the maximum speed.
 
     Endpoint: GET /cameras/<camera_id>/frames/list
 
@@ -205,6 +205,7 @@ def get_frames(camera_id):
     - end_time (string): End timestamp for frame retrieval.
     - page (int, optional): Page number for pagination (default is 1).
     - page_size (int, optional): Number of frames per page (default is 10).
+    - filter_exceeded_speed (string, optional): Filter frames based on vehicles that exceeded the maximum speed. Set to 'true' to include only frames with speeding vehicles.
 
     Returns:
     - 200 OK: Frames retrieved successfully. Returns the list of frames.
@@ -217,8 +218,9 @@ def get_frames(camera_id):
         end_time = request.args.get('end_time')
         page = int(request.args.get('page', 1))  # Current page
         page_size = int(request.args.get('page_size', DEFAULT_PAGE_SIZE))  # Page size
+        filter_exceeded_speed = request.args.get('filter_exceeded_speed')  # Optional parameter
 
-        logger.debug(f"Request parameters: camera_id={camera_id}, start_time={start_time}, end_time={end_time}, page={page}, page_size={page_size}")
+        logger.debug(f"Request parameters: camera_id={camera_id}, start_time={start_time}, end_time={end_time}, page={page}, page_size={page_size}, filter_exceeded_speed={filter_exceeded_speed}")
 
         # Validate query parameters
         if not (camera_id and start_time and end_time):
@@ -229,9 +231,13 @@ def get_frames(camera_id):
         end_time = datetime.fromisoformat(end_time)
 
         query = {
-            "camera_id": ObjectId(camera_id),
+            "camera_id": camera_id,
             "frame_timestamp": {"$gte": start_time, "$lte": end_time}
         }
+
+        # Check if the filter_exceeded_speed parameter is present and set to true
+        if filter_exceeded_speed == 'true':
+            query["processed_frame.detected_vehicles.exceeded_max_speed"] = True
 
         frames = list(db.frames.find(query).skip((page - 1) * page_size).limit(page_size))
 
@@ -255,13 +261,13 @@ def save_frame():
     Parameters:
     - mac_address (string): MAC address of the camera.
     - camera_id (string): ID of the camera.
+    - frame_timestamp (string): Timestamp of the frame.
     - processed_frame (string): JSON string containing processed frame information.
 
     Returns:
     - 200 OK: Frame processed successfully.
-    - 400 Bad Request: Missing required data or invalid camera_id.
-    - 401 Unauthorized: Camera or provisioning not enabled.
-    - 500 Internal Server Error: Error processing the frame.
+    - 400 Bad Request: Missing required data.
+    - 500 Internal Server Error: Error processing frame.
     """
     try:
         logger.info("Received POST request for saving frames.")
@@ -298,12 +304,19 @@ def save_frame():
         processed_frame["original_frame_name"] = _save_image_to_minio(processed_frame["original_frame_base64"])
 
         # Process vehicles in the frame
+        processed_frame_unique_vehicles = set()
         for vehicle in processed_frame["detected_vehicles"]:
+            vehicle_id = vehicle.get("vehicle_id")
+            if vehicle_id not in processed_frame_unique_vehicles:
+                processed_frame_unique_vehicles.add(vehicle_id)
             vehicle["vehicle_frame_name"] = _save_image_to_minio(vehicle["vehicle_frame_base64"])
-            vehicle_speed = vehicle.get("speed_info", {}).get("kph", 0)
-            # Mark vehicles that exceed the maximum speed limit
-            if vehicle_speed > max_speed_allowed:
-                vehicle["exceeded_max_speed"] = True
+            vehicle_speed_info = vehicle.get("speed_info", {})
+            vehicle_speed = vehicle_speed_info.get("kph") if isinstance(vehicle_speed_info, dict) else None
+            # Ensure both vehicle_speed and max_speed_allowed are not None before comparison
+            if vehicle_speed is not None and max_speed_allowed is not None:
+                # Mark vehicles that exceed the maximum speed limit
+                if vehicle_speed > max_speed_allowed:
+                    vehicle["exceeded_max_speed"] = True
 
         # Remove base64 data to reduce payload size
         processed_frame.pop("annotated_frame_base64", None)
@@ -321,19 +334,67 @@ def save_frame():
             "processed_frame": processed_frame
         })
 
+        # Update the number of vehicles detected for this camera
+        db.cameras.update_one(
+            {"_id": ObjectId(camera_id)},
+            {"$inc": {"vehicles_detected": len(processed_frame_unique_vehicles)}}
+        )
+
         logger.info("Frame processed successfully.")
         return generate_response("success", "Frame processed successfully"), 200
 
     except Exception as e:
         logger.error(f"Error in save_frame: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return generate_response("error", "Error processing frame"), 500
+    
+
+@app.route(f"{BASE_URL_PREFIX}/frames/image/<image_id>", methods=['GET'])
+def get_image(image_id):
+    """
+    Retrieves an image from MinIO using the provided image ID.
+
+    Endpoint: GET /cameras/frames/image/<image_id>
+
+    Parameters:
+    - image_id (string): Identifier of the image.
+
+    Returns:
+    - Image file: Retrieved image from MinIO.
+    - 404 Not Found: The specified image does not exist.
+    - 500 Internal Server Error: Error retrieving the image.
+    """
+    try:
+        logger.info(f"Received GET request for image with ID: {image_id}")
+
+        # Initialize the MinIO client
+        minio_client = Minio(MINIO_ENDPOINT, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=False)
+
+        # Check if the image exists in MinIO
+        found = minio_client.stat_object(MINIO_BUCKET, image_id)
+        if not found:
+            logger.warning(f"Image with ID '{image_id}' not found in MinIO.")
+            return generate_response("error", f"Image with ID '{image_id}' not found"), 404
+
+        # Get the image data from MinIO
+        image_data = minio_client.get_object(MINIO_BUCKET, image_id)
+        image_bytes = image_data.read()
+
+        # Return the image as a response
+        return send_file(io.BytesIO(image_bytes), mimetype='image/jpeg')
+
+    except Exception as e:
+        logger.error(f"Error in get_image: {str(e)}")
+        return generate_response("error", "Error retrieving the image"), 500
+
 
 # Function to check if provisioning is enabled for a specific MAC address and camera
 def _is_provisioning_enabled(mac_address, camera_id):
     # Find provisioning in the database by MAC address, camera ID, and enabled status
     provisioning = db.provisioning.find_one({
         "mac_address": mac_address,
-        "camera_id": ObjectId(camera_id),
+        "camera_id": camera_id,
         "status": "enabled"
     })
     # Return True if provisioning is enabled, otherwise False
@@ -341,26 +402,35 @@ def _is_provisioning_enabled(mac_address, camera_id):
 
 # Function to save an image to MinIO
 def _save_image_to_minio(base64_data):
-    # Decode the image's Base64 data
-    image_data = base64.b64decode(base64_data)
+    # Check if base64_data is None or an empty string
+    if not base64_data:
+        logger.warning("Base64 data is empty or None.")
+        return None
+    try:
+        # Decode the image's Base64 data
+        image_data = base64.b64decode(base64_data)
 
-    # Generate a unique object name in MinIO using UUID
-    object_name = f"{uuid.uuid4()}.jpg"
+        # Generate a unique object name in MinIO using UUID
+        object_name = f"{uuid.uuid4()}.jpg"
 
-    # Initialize the MinIO client
-    minio_client = Minio(MINIO_ENDPOINT, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=False)
+        # Initialize the MinIO client
+        minio_client = Minio(MINIO_ENDPOINT, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=False)
 
-    # Check if the MinIO bucket exists; create it if it doesn't exist
-    bucket_exists = minio_client.bucket_exists(MINIO_BUCKET)
-    if not bucket_exists:
-        logger.info(f"Bucket '{MINIO_BUCKET}' does not exist; creating...")
-        minio_client.make_bucket(MINIO_BUCKET)
+        # Check if the MinIO bucket exists; create it if it doesn't exist
+        bucket_exists = minio_client.bucket_exists(MINIO_BUCKET)
+        if not bucket_exists:
+            logger.info(f"Bucket '{MINIO_BUCKET}' does not exist; creating...")
+            minio_client.make_bucket(MINIO_BUCKET)
 
-    # Store the image in MinIO
-    minio_client.put_object(MINIO_BUCKET, object_name, io.BytesIO(image_data), len(image_data))
+        # Store the image in MinIO
+        minio_client.put_object(MINIO_BUCKET, object_name, io.BytesIO(image_data), len(image_data))
 
-    # Return the name of the object saved in MinIO
-    return object_name
+        # Return the name of the object saved in MinIO
+        return object_name
+
+    except Exception as e:
+        logger.error(f"Error saving image to MinIO: {str(e)}")
+        return None
 
 
 if __name__ == "__main__":

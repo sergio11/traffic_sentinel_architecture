@@ -62,15 +62,47 @@
       {
         "name": "Get Frames",
         "request": {
-          "method": "GET",
-          "header": [],
-          "url": {
-            "raw": "http://localhost:5000/your_camera_id/frames/list?start_time=2023-11-10T00:00:00&end_time=2023-11-11T00:00:00&page=1&page_size=10",
-            "protocol": "http",
-            "host": ["localhost"],
-            "port": "5000",
-            "path": ["your_camera_id", "frames", "list"]
-          }
+            "method": "GET",
+            "header": [],
+            "url": {
+                "raw": "http://localhost:5000/your_camera_id/frames/list?start_time=2023-11-10T00:00:00&end_time=2023-11-11T00:00:00&page=1&page_size=10&exceeded_max_speed=true",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "5000",
+                "path": ["your_camera_id", "frames", "list"],
+                "query": [
+                    {
+                        "key": "start_time",
+                        "value": "2023-11-10T00:00:00",
+                        "equals": true,
+                        "description": ""
+                    },
+                    {
+                        "key": "end_time",
+                        "value": "2023-11-11T00:00:00",
+                        "equals": true,
+                        "description": ""
+                    },
+                    {
+                        "key": "page",
+                        "value": "1",
+                        "equals": true,
+                        "description": ""
+                    },
+                    {
+                        "key": "page_size",
+                        "value": "10",
+                        "equals": true,
+                        "description": ""
+                    },
+                    {
+                        "key": "exceeded_max_speed",
+                        "value": "true",
+                        "equals": true,
+                        "description": "Filter frames where vehicles exceeded maximum speed"
+                    }
+                ]
+            }
         },
         "response": []
       },
@@ -90,6 +122,21 @@
             "port": "5000",
             "path": ["frames", "save"]
           }
+        },
+        "response": []
+      },
+      {
+        "name": "Get Image from MinIO",
+        "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+                "raw": "http://localhost:5000/cameras/frames/image/your_image_id",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "5000",
+                "path": ["cameras", "frames", "image", "your_image_id"]
+            }
         },
         "response": []
       }
