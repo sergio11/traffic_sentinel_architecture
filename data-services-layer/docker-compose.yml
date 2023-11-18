@@ -170,6 +170,8 @@ services:
     container_name: stream-service-1
     env_file:
       - ./.env
+    ports:
+      - '5004:5000'
     networks:
       - smart-highway-net
 
