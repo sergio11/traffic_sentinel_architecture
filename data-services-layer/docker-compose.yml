@@ -163,6 +163,16 @@ services:
     networks:
       - smart-highway-net
 
+
+  # Traffic Sentinel Stream API service
+  stream_service_1:
+    image: ssanchez11/smart_highway_net_stream_service:0.0.1
+    container_name: stream-service-1
+    env_file:
+      - ./.env
+    networks:
+      - smart-highway-net
+
 networks:
   smart-highway-net:
     driver: bridge
