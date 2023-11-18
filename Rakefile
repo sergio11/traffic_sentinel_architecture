@@ -407,7 +407,8 @@ namespace :SmartHighwayNet do
 				{ name: "ssanchez11/smart_highway_net_provision_service:0.0.1", dockerfile: "./data-services-layer/provision/Dockerfile" },
 				{ name: "ssanchez11/smart_highway_net_notifier_service:0.0.1", dockerfile: "./data-services-layer/notifier/Dockerfile" },
 				{ name: "ssanchez11/smart_highway_net_cameras_service:0.0.1", dockerfile: "./data-services-layer/cameras/Dockerfile" },
-				{ name: "ssanchez11/smart_highway_net_users_service:0.0.1", dockerfile: "./data-services-layer/users/Dockerfile" }
+				{ name: "ssanchez11/smart_highway_net_users_service:0.0.1", dockerfile: "./data-services-layer/users/Dockerfile" },
+				{ name: "ssanchez11/smart_highway_net_stream_service:0.0.1", dockerfile: "./data-services-layer/stream/Dockerfile" }
 			]
 
 			image_info.each do |info|

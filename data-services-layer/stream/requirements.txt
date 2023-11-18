@@ -1,0 +1,5 @@
+Flask==3.0.0
+gunicorn==20.1.0
+Flask-SocketIO==5.3.6
+confluent-kafka==2.2.0
+pymongo==4.5.0
