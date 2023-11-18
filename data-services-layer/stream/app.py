@@ -1,6 +1,6 @@
 from client_manager import ClientManager
-from flask import Flask, jsonify, request
-from flask_socketio import SocketIO
+from flask import Flask, request
+from flask_socketio import SocketIO, emit
 import os
 import logging
 from pymongo import MongoClient
@@ -18,27 +18,24 @@ db = mongo_client[MONGO_DB]
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-clientManager = None
+# Initialize the namespace for managing client connections
+clientManager = ClientManager()
 
-# Route for clients to subscribe for a specific camera ID
-@app.route('/subscribe/<camera_id>', methods=['POST'])
-def subscribe(camera_id):
+@socketio.on('subscribe_camera')
+def subscribe_camera(data):
+    global clientManager
     client_sid = request.sid
-    # Check if the camera ID exists in the MongoDB cameras collection
+    camera_id = data.get('camera_id')
+    logger.info(f"Client {client_sid} try to subscribe to camera {camera_id}")
     camera = db.cameras.find_one({'_id': ObjectId(camera_id)})
     if camera is not None:
         clientManager.subscribe_to_camera(client_sid, camera_id)
-        return jsonify(message=f"Subscribed to camera ID {camera_id}")
+        emit('subscription_success', {'message': f"Subscribed to camera ID {camera_id}"})
+        logger.info(f"Client {client_sid} subscribed to camera {camera_id}")
     else:
-        return jsonify(message="Invalid camera ID"), 400
-
-# Main function
-def main():
-    global clientManager
-    # Initialize the namespace for managing client connections
-    clientManager = ClientManager()
-    socketio.on_namespace(clientManager)
-    socketio.run(app, debug=True, use_reloader=False)
+        emit('subscription_error', {'message': "Invalid camera ID"}, status=400)
+        logger.error(f"Invalid camera ID subscription request from client {client_sid}")
 
 if __name__ == '__main__':
-    main()
+    socketio.on_namespace(clientManager)
+    socketio.run(app, debug=True, use_reloader=False)

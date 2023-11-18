@@ -186,9 +186,9 @@ def authenticate():
             if client_response == expected_response:
                 # Generate a unique UUID for the session
                 session_uuid = str(uuid.uuid4())
-                # Store authenticated session UUID in Redis with a 1-hour expiration
+                # Store authenticated session UUID in Redis with a 1-hour expiration  - 3600
                 redis_session_key = f"{mac_address}_session"
-                redis_client.set(redis_session_key, session_uuid, ex=3600)
+                redis_client.set(redis_session_key, session_uuid, ex=60)
                 logger.info(f"Authentication successful for MAC {mac_address}. Session ID: {session_uuid} with session key: {redis_session_key}")
                 # Save session information
                 session_data = {
