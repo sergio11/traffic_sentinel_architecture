@@ -250,6 +250,32 @@ def get_frames(camera_id):
         logger.error(f"Error in get_frames: {str(e)}")
         return generate_response("error", "Error processing request"), 500
 
+@app.route(f"{BASE_URL_PREFIX}/list", methods=['GET'])
+@requires_authentication()
+def list_cameras():
+    """
+    Retrieves the list of cameras available in the collection.
+
+    Endpoint: GET /cameras/list
+
+    Returns:
+    - 200 OK: List of cameras retrieved successfully.
+    - 500 Internal Server Error: Error retrieving the list of cameras.
+    """
+    try:
+        logger.info("Received GET request for the list of cameras.")
+
+        # Retrieve the list of cameras from the database
+        cameras = list(db.cameras.find())
+
+        logger.debug(f"Retrieved cameras: {cameras}")
+
+        response_data = {"cameras": cameras}
+        return generate_response("success", "List of cameras retrieved successfully", data=response_data), 200
+
+    except Exception as e:
+        logger.error(f"Error in list_cameras: {str(e)}")
+        return generate_response("error", "Error retrieving the list of cameras"), 500
 
 @app.route(f"{BASE_URL_PREFIX}/frames/save", methods=['POST'])
 def save_frame():
