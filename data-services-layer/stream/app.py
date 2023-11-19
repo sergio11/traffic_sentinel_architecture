@@ -16,12 +16,13 @@ MONGO_DB = os.environ.get("MONGO_DB", "smarthighwaynet")
 mongo_client = MongoClient(MONGO_CONNECTION_URL)
 db = mongo_client[MONGO_DB]
 
-# Initialize the client manager
-clientManager = ClientManager(logger)
-
 # Initialize Flask app and SocketIO
 app = Flask(__name__)
 socketio = SocketIO(app)
+# Initialize the client manager
+clientManager = ClientManager(logger, onNewPayloadConsumedCallback= lambda frame_data, cliend_sid:
+    socketio.emit('new_frame', frame_data, to=cliend_sid)                          
+)
 socketio.on_namespace(clientManager)
 
 # Socket event handlers
