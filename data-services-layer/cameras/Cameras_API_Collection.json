@@ -139,6 +139,26 @@
             }
         },
         "response": []
-      }
+      },
+      {
+        "name": "List Cameras",
+        "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+                "raw": "http://localhost:5000/cameras/list",
+                "protocol": "http",
+                "host": [
+                    "localhost"
+                ],
+                "port": "5000",
+                "path": [
+                    "cameras",
+                    "list"
+                ]
+            }
+        },
+        "response": []
+    }
     ]
   }  
