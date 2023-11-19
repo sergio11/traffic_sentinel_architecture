@@ -84,6 +84,7 @@ This layer houses multiple Flask services offering diverse functionalities:
 - **Socket.IO 🌐:** A library that enables real-time, bidirectional, and event-based communication between web clients and servers, used for transmitting real-time updates in the application.
 - **Vault by HashiCorp 🔒:** A tool for managing secrets and protecting sensitive data. Used for secure storage of secrets, such as Fog node passwords required for resolving CHAP challenges.
 - **Ruby Rake 💎:** Utilized for administrative tasks and project setup, offering robustness in configuration management and automation.
+- **Docker 🐳:** Containerization platform used for packaging applications and their dependencies into containers to ensure consistency in various environments.
 
 ## 🚀 Getting Started
 
