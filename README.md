@@ -85,6 +85,8 @@ This layer houses multiple Flask services offering diverse functionalities:
 - **Vault by HashiCorp 🔒:** A tool for managing secrets and protecting sensitive data. Used for secure storage of secrets, such as Fog node passwords required for resolving CHAP challenges.
 - **Ruby Rake 💎:** Utilized for administrative tasks and project setup, offering robustness in configuration management and automation.
 - **Docker 🐳:** Containerization platform used for packaging applications and their dependencies into containers to ensure consistency in various environments.
+- **MinIO 📦:** An object storage server compatible with Amazon S3 API used for storing images and files in a scalable and high-performance manner.
+- **HAproxy 🔄:** An open-source load balancer used for improving the availability and reliability of the platform, ensuring smooth traffic management and distribution.
 
 ## 🚀 Getting Started
 
