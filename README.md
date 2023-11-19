@@ -60,6 +60,22 @@ This layer houses multiple Flask services offering diverse functionalities:
 - **Camera Management:** Allows configuration and monitoring of IoT cameras.
 - **Processed Frame Streaming Service:** Enables the streaming of processed frames to authorized users.
 
+## Technologies Used
+
+- **Python** 🐍:  Main programming language used for system development. Python's versatility and extensive libraries facilitate rapid development across different layers of the platform.
+
+- **Flask** 🌐: Lightweight web framework for building the provisioning service that provides camera information to Fog nodes. Facilitates seamless communication between components.
+
+- **MongoDB** 📁: NoSQL database for storing camera information associated with Fog nodes' MAC addresses. Ensures efficient and scalable management of diverse camera data.
+
+- **Redis** 🔄: In-memory data store for caching and session management. Improves performance by caching frequently accessed data and maintaining session information.
+
+- **Apache Flink** 🚀: Stream processing framework for real-time data analysis. Enables real-time analysis of video streams, aiding in efficient data processing.
+
+- **YOLO (You Only Look Once)** 👁️: Deep learning-based object detection model used for vehicle detection in video streams. Provides high accuracy in real-time vehicle detection.
+
+- **MQTT (Message Queuing Telemetry Transport)** 📡: Lightweight messaging protocol for Fog nodes and central servers. Enables efficient communication crucial for real-time traffic monitoring.
+
 ## 🚀 Getting Started
 
 To begin using Traffic Sentinel, follow these steps:
@@ -76,16 +92,6 @@ We welcome contributions from the community. Feel free to open issues, suggest e
 ## 📝 License
 
 This project is licensed under the [MIT License](LICENSE).
-
-## Technologies Used
-
-- **Python**: The main programming language used for developing various components of the system.
-- **Flask**: A lightweight web framework used for building the provisioning service that provides camera information to Fog nodes.
-- **MongoDB**: A NoSQL database used for storing camera information associated with MAC addresses of Fog nodes.
-- **Redis**: An in-memory data store used for caching and session management.
-- **Apache Flink**: A stream processing framework for real-time data analysis.
-- **YOLO (You Only Look Once)**: A deep learning-based object detection model used for vehicle detection in video streams.
-- **MQTT**: A lightweight messaging protocol for communication between Fog nodes and central servers.
 
 ## Components
 
