@@ -27,12 +27,12 @@
 
 ## Key Features 🚀
 
-* **Real-Time Vehicle Detection and Tracking 🚗🔍**: Traffic Sentinel employs advanced machine learning models like YOLO (You Only Look Once) to detect and track vehicles in real-time video streams. It provides instantaneous and continuous tracking of vehicles on roads monitored by the IoT system.
-* **Vehicle Speed Monitoring 🌐⚡**: The system performs specific speed analysis to determine which vehicles exceed the set speed limits on the roads monitored by the IoT. This allows identification and logging of vehicles that violate speed limits, contributing to improved road safety.
-* **Efficient Data Processing with Apache Flink ⚙️💻**: Using Apache Flink for real-time data processing, Traffic Sentinel captures details like vehicle speed, enabling rapid identification of those exceeding limits. This functionality is crucial for taking immediate actions in speed violation situations.
-* **Data Movement Orchestration with Apache NiFi 🔄🌩️**: The data orchestration layer, based on Apache NiFi, facilitates data flow between different components of the IoT system. It enables seamless integration between MQTT, Kafka, and other elements, optimizing analysis and detection of vehicles violating speed limits.
-* **Robust and Secure Data Storage 💾🔐**: Traffic Sentinel utilizes MongoDB and Redis for storing processed data and managing information related to vehicles and users. Additionally, Vault by HashiCorp ensures secure management of credentials and sensitive data.
-* **Flask Services for Management and Authentication 🛠️🔑**: Flask-based services ease user authentication and camera management, enhancing security and controlled access to the IoT system for vehicle and speed monitoring purposes.
+- **Real-Time Vehicle Detection and Tracking 🚗🔍**: Traffic Sentinel employs advanced machine learning models like YOLO (You Only Look Once) to detect and track vehicles in real-time video streams. It provides instantaneous and continuous tracking of vehicles on roads monitored by the IoT system.
+- **Vehicle Speed Monitoring 🌐⚡**: The system performs specific speed analysis to determine which vehicles exceed the set speed limits on the roads monitored by the IoT. This allows identification and logging of vehicles that violate speed limits, contributing to improved road safety.
+- **Efficient Data Processing with Apache Flink ⚙️💻**: Using Apache Flink for real-time data processing, Traffic Sentinel captures details like vehicle speed, enabling rapid identification of those exceeding limits. This functionality is crucial for taking immediate actions in speed violation situations.
+- **Data Movement Orchestration with Apache NiFi 🔄🌩️**: The data orchestration layer, based on Apache NiFi, facilitates data flow between different components of the IoT system. It enables seamless integration between MQTT, Kafka, and other elements, optimizing analysis and detection of vehicles violating speed limits.
+- **Robust and Secure Data Storage 💾🔐**: Traffic Sentinel utilizes MongoDB and Redis for storing processed data and managing information related to vehicles and users. Additionally, Vault by HashiCorp ensures secure management of credentials and sensitive data.
+- **Flask Services for Management and Authentication 🛠️🔑**: Flask-based services ease user authentication and camera management, enhancing security and controlled access to the IoT system for vehicle and speed monitoring purposes.
 
 ## 🌐 Architecture Overview
 
@@ -72,18 +72,18 @@ This layer houses multiple Flask services offering diverse functionalities:
 ## Technologies Used
 
 - **Python** 🐍:  Main programming language used for system development. Python's versatility and extensive libraries facilitate rapid development across different layers of the platform.
-
 - **Flask** 🌐: Lightweight web framework for building the provisioning service that provides camera information to Fog nodes. Facilitates seamless communication between components.
-
 - **MongoDB** 📁: NoSQL database for storing camera information associated with Fog nodes' MAC addresses. Ensures efficient and scalable management of diverse camera data.
-
 - **Redis** 🔄: In-memory data store for caching and session management. Improves performance by caching frequently accessed data and maintaining session information.
-
 - **Apache Flink** 🚀: Stream processing framework for real-time data analysis. Enables real-time analysis of video streams, aiding in efficient data processing.
-
 - **YOLO (You Only Look Once)** 👁️: Deep learning-based object detection model used for vehicle detection in video streams. Provides high accuracy in real-time vehicle detection.
-
 - **MQTT (Message Queuing Telemetry Transport)** 📡: Lightweight messaging protocol for Fog nodes and central servers. Enables efficient communication crucial for real-time traffic monitoring.
+- **Apache NiFi 🔄🌩️:** An integral part of the Data Orchestration Layer, orchestrates data movement at scale. Integrates MQTT with Kafka for seamless data transfer across different components.
+- **Tkinter 🖼️:** Python's de-facto standard GUI (Graphical User Interface) package for building user interfaces.
+- **ZooKeeper 🦁:** A centralized service used for maintaining configuration information, naming, providing distributed synchronization, and group services.
+- **Socket.IO 🌐:** A library that enables real-time, bidirectional, and event-based communication between web clients and servers, used for transmitting real-time updates in the application.
+- **Vault by HashiCorp 🔒:** A tool for managing secrets and protecting sensitive data. Used for secure storage of secrets, such as Fog node passwords required for resolving CHAP challenges.
+- **Ruby Rake 💎:** Utilized for administrative tasks and project setup, offering robustness in configuration management and automation.
 
 ## 🚀 Getting Started
 
