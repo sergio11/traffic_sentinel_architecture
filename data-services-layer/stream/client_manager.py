@@ -17,14 +17,16 @@ class ClientManager(Namespace):
     Attributes:
     - clients (dict): A dictionary to store connected clients and their subscribed camera IDs.
     """
-    def __init__(self, logger):
+    def __init__(self, logger, onNewPayloadConsumedCallback):
         """
         Initializes the ClientManager.
         """
         super().__init__(namespace='/traffic_sentinel_stream')
         self.clients = {}
         self.kafka_thread = None
+        self.kafka_thread_running = False
         self.logger = logger
+        self.onNewPayloadConsumedCallback = onNewPayloadConsumedCallback
 
     def on_connect(self, client_sid):
         """
@@ -76,15 +78,18 @@ class ClientManager(Namespace):
             leave_room(camera_id)
             self.clients[client_sid] = None
             self.logger.info(f"Client {client_sid} unsubscribed from camera {camera_id}")
+            self._check_clients_and_start_kafka_consumer()
         else:
             self.logger.info(f"Client {client_sid} is not subscribed to any camera")
 
     def _check_clients_and_start_kafka_consumer(self):
         if len(self.clients) > 0 and self.kafka_thread is None:
+            self.kafka_thread_running = True
             self.kafka_thread = threading.Thread(target=self._start_kafka_consumer)
             self.kafka_thread.start()
             self.logger.info("Started Kafka consumer thread because there are connected clients")
         elif len(self.clients) == 0 and self.kafka_thread is not None:
+            self.kafka_thread_running = False
             self.kafka_thread = None
             self.logger.info("Stopped Kafka consumer thread because there are no connected clients")
         elif len(self.clients) > 0 and self.kafka_thread is not None:
@@ -105,7 +110,7 @@ class ClientManager(Namespace):
 
         self.logger.info("Kafka consumer started")
 
-        while True:
+        while self.kafka_thread_running:
             msg = c.poll(1.0)
             if msg is None:
                 continue
@@ -120,11 +125,11 @@ class ClientManager(Namespace):
                 payload = json.loads(frame_data) 
                 camera_id = payload.get('camera_id')
                 self.logger.info(f"Received new message from Kafka with camera id: {camera_id}")
-
                 for client_sid, subscribed_camera_id in self.clients.items():
                     if subscribed_camera_id and subscribed_camera_id == camera_id:
-                        self.emit('new_frame', frame_data, namespace='/traffic_sentinel_stream', room=client_sid)
-                        self.logger.info(f"Emitted new_frame event to client {client_sid} for camera {camera_id}")
+                        if self.onNewPayloadConsumedCallback:
+                            self.onNewPayloadConsumedCallback(frame_data, client_sid)
+                            self.logger.info(f"Emitted data to client: {client_sid}")
 
         c.close()
         self.logger.info("Kafka consumer stopped")
