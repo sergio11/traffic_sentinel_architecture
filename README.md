@@ -22,41 +22,89 @@
   <img src="https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white" />
   <img src="https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white" />
   <img src="https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white" />
+  <img src="https://img.shields.io/badge/Vault-%23000000.svg?&style=for-the-badge&logo=Vault&logoColor=white" />
+  <img src="https://img.shields.io/badge/Apache Nifi-D22128?style=for-the-badge&logo=Apache&logoColor=white" />
 </p>
 
+## Key Features 🚀
 
-## Introduction
+- **Real-Time Vehicle Detection and Tracking 🚗🔍**: Traffic Sentinel employs advanced machine learning models like YOLO (You Only Look Once) to detect and track vehicles in real-time video streams. It provides instantaneous and continuous tracking of vehicles on roads monitored by the IoT system.
+- **Vehicle Speed Monitoring 🌐⚡**: The system performs specific speed analysis to determine which vehicles exceed the set speed limits on the roads monitored by the IoT. This allows identification and logging of vehicles that violate speed limits, contributing to improved road safety.
+- **Efficient Data Processing with Apache Flink ⚙️💻**: Using Apache Flink for real-time data processing, Traffic Sentinel captures details like vehicle speed, enabling rapid identification of those exceeding limits. This functionality is crucial for taking immediate actions in speed violation situations.
+- **Data Movement Orchestration with Apache NiFi 🔄🌩️**: The data orchestration layer, based on Apache NiFi, facilitates data flow between different components of the IoT system. It enables seamless integration between MQTT, Kafka, and other elements, optimizing analysis and detection of vehicles violating speed limits.
+- **Robust and Secure Data Storage 💾🔐**: Traffic Sentinel utilizes MongoDB and Redis for storing processed data and managing information related to vehicles and users. Additionally, Vault by HashiCorp ensures secure management of credentials and sensitive data.
+- **Flask Services for Management and Authentication 🛠️🔑**: Flask-based services ease user authentication and camera management, enhancing security and controlled access to the IoT system for vehicle and speed monitoring purposes.
+
+## 🌐 Architecture Overview
 
 Traffic congestion and road safety are critical concerns in modern urban environments. Traffic Sentinel addresses these challenges by providing a comprehensive IoT-based traffic monitoring solution. The system collects video streams from IP cameras deployed on roads and uses machine learning techniques to detect and track vehicles in real time. This data is then processed and analyzed to provide insights into traffic flow, congestion, and potential safety issues.
 
+Traffic Sentinel consists of several layers, each playing a crucial role in the platform's architecture:
 
-## Services Foundation Layer
-The Services Foundation Layer forms the bedrock of our system architecture, providing the essential infrastructure and core functionalities that support the entire ecosystem. This layer encompasses foundational components such as Kafka, Mosquitto, MongoDB, Vault, Redis, and other essential building blocks. It establishes the fundamental communication, data storage, security, and orchestration mechanisms that serve as the backbone for the entire solution. Services at this level handle critical tasks such as message queuing, data persistence, authentication, authorization, and secret management. The Services Foundation Layer ensures reliability, security, and scalability across the entire platform, serving as the base upon which subsequent layers are built.
+### 🌩️ Fog Stream Processing Layer
 
-## Framework-Extended Services Layer
-The Framework-Extended Services Layer builds upon the strong foundation provided by the Services Foundation Layer. This layer extends the core capabilities by introducing specialized frameworks and advanced services that address specific application requirements. Apache Flink, a powerful real-time data processing framework, is a prime example of a component within this layer. Other services that enable complex stream processing, analytics, and data transformations also reside here. The Framework-Extended Services Layer adds a layer of sophistication to the system, offering advanced tools for analyzing, processing, and deriving insights from data streams. These services enrich the capabilities of the foundational layer, catering to intricate business needs and data processing scenarios.
+Responsible for ingesting frames from IoT cameras, this layer acts as an intermediary between IoT devices and the cloud. It utilizes MQTT for transmitting information, ensuring efficient data flow.
 
-## Fog Stream Processing Nodes Layer
-The Fog Stream Processing Nodes Layer encapsulates the nodes within our edge computing architecture that specialize in real-time stream processing of data generated by IP cameras. These nodes are strategically positioned at the network's edge, close to the data sources, to minimize latency and optimize data processing efficiency. In this layer, the streaming data from IP cameras is ingested, analyzed, and transformed in real time to extract valuable insights. These nodes play a pivotal role in ensuring rapid and efficient data processing, enabling immediate responses to changing conditions or events captured by the cameras. By processing the streams at the edge, the Fog Stream Processing Nodes Layer enhances the overall system's performance, responsiveness, and ability to make data-driven decisions in time-critical scenarios.
+### 🔄 Data Orchestration Layer with Apache NiFi
 
-## Architecture Overview
+The Data Orchestration Layer, powered by Apache NiFi, orchestrates data movement on a large scale. It integrates MQTT with Kafka, facilitating seamless data transfer across different components of the architecture.
 
-Traffic Sentinel's architecture is designed to handle the complexities of real-time traffic data processing. It consists of the following key components:
+### ⚙️ Real-time Processing with Apache Flink
 
-- **Fog Nodes**: Intermediate processing nodes placed strategically to preprocess data from IP cameras, reducing the load on central servers.
-- **Apache Flink**: A stream processing framework used for real-time data analysis, enabling tasks like vehicle detection using YOLO.
-- **Redis**: A caching and session management tool used for storing temporary data, such as authentication sessions.
-- **MQTT**: A lightweight messaging protocol used for communication between Fog nodes and central servers.
+The real-time processing layer, built on Apache Flink, performs live analysis of frames ingested into Kafka. It identifies vehicles present in frames, capturing details such as speed, model, color, and direction using the VehicleDetectionTracker module.
+
+[VehicleDetectionTracker Repository](https://github.com/sergio11/vehicle_detection_tracker)
+
+### 💾 Data Storage Layer
+
+MongoDB serves as the repository for consolidated processed frames, managed IoT cameras, provisioned Fog nodes, and platform user data. Redis is used for session validation and other essential operations.
+
+Vault by HashiCorp securely stores secrets, providing fine-grained control over sensitive data, including Fog node passwords required for resolving CHAP challenges.
+
+### 🛠️ Data Services Layer with Flask
+
+This layer houses multiple Flask services offering diverse functionalities:
+
+- **Authentication and Provisioning Service for Fog Nodes:** Ensures secure access and authorization for Fog nodes.
+- **User Authentication and Management:** Manages user authentication and access control.
+- **Camera Management:** Allows configuration and monitoring of IoT cameras.
+- **Processed Frame Streaming Service:** Enables the streaming of processed frames to authorized users.
 
 ## Technologies Used
 
-- **Python**: The main programming language used for developing various components of the system.
-- **Flask**: A lightweight web framework used for building the provisioning service that provides camera information to Fog nodes.
-- **MongoDB**: A NoSQL database used for storing camera information associated with MAC addresses of Fog nodes.
-- **Redis**: An in-memory data store used for caching and session management.
-- **Apache Flink**: A stream processing framework for real-time data analysis.
-- **YOLO (You Only Look Once)**: A deep learning-based object detection model used for vehicle detection in video streams.
-- **MQTT**: A lightweight messaging protocol for communication between Fog nodes and central servers.
+- **Python** 🐍:  Main programming language used for system development. Python's versatility and extensive libraries facilitate rapid development across different layers of the platform.
+- **Flask** 🌐: Lightweight web framework for building the provisioning service that provides camera information to Fog nodes. Facilitates seamless communication between components.
+- **MongoDB** 📁: NoSQL database for storing camera information associated with Fog nodes' MAC addresses. Ensures efficient and scalable management of diverse camera data.
+- **Redis** 🔄: In-memory data store for caching and session management. Improves performance by caching frequently accessed data and maintaining session information.
+- **Apache Flink** 🚀: Stream processing framework for real-time data analysis. Enables real-time analysis of video streams, aiding in efficient data processing.
+- **YOLO (You Only Look Once)** 👁️: Deep learning-based object detection model used for vehicle detection in video streams. Provides high accuracy in real-time vehicle detection.
+- **MQTT (Message Queuing Telemetry Transport)** 📡: Lightweight messaging protocol for Fog nodes and central servers. Enables efficient communication crucial for real-time traffic monitoring.
+- **Apache NiFi 🔄🌩️:** An integral part of the Data Orchestration Layer, orchestrates data movement at scale. Integrates MQTT with Kafka for seamless data transfer across different components.
+- **Tkinter 🖼️:** Python's de-facto standard GUI (Graphical User Interface) package for building user interfaces.
+- **ZooKeeper 🦁:** A centralized service used for maintaining configuration information, naming, providing distributed synchronization, and group services.
+- **Socket.IO 🌐:** A library that enables real-time, bidirectional, and event-based communication between web clients and servers, used for transmitting real-time updates in the application.
+- **Vault by HashiCorp 🔒:** A tool for managing secrets and protecting sensitive data. Used for secure storage of secrets, such as Fog node passwords required for resolving CHAP challenges.
+- **Ruby Rake 💎:** Utilized for administrative tasks and project setup, offering robustness in configuration management and automation.
+- **Docker 🐳:** Containerization platform used for packaging applications and their dependencies into containers to ensure consistency in various environments.
+- **MinIO 📦:** An object storage server compatible with Amazon S3 API used for storing images and files in a scalable and high-performance manner.
+- **HAproxy 🔄:** An open-source load balancer used for improving the availability and reliability of the platform, ensuring smooth traffic management and distribution.
+
+## 🚀 Getting Started
+
+To begin using Traffic Sentinel, follow these steps:
+
+1. Clone the Traffic Sentinel repository.
+2. Install the required dependencies using the provided instructions.
+3. Configure each layer and service according to the setup guide.
+4. Run the platform using the designated start commands for each component.
+
+## 🤝 Contributing
+
+We welcome contributions from the community. Feel free to open issues, suggest enhancements, or submit pull requests to help enhance Traffic Sentinel.
+
+## 📝 License
+
+This project is licensed under the [MIT License](LICENSE).
 
 ## Components
 
