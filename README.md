@@ -39,6 +39,8 @@
 
 Traffic congestion and road safety are critical concerns in modern urban environments. Traffic Sentinel addresses these challenges by providing a comprehensive IoT-based traffic monitoring solution. The system collects video streams from IP cameras deployed on roads and uses machine learning techniques to detect and track vehicles in real time. This data is then processed and analyzed to provide insights into traffic flow, congestion, and potential safety issues.
 
+<img width="auto" src="./doc/architecture_diagram.drawio.svg" />
+
 Traffic Sentinel consists of several layers, each playing a crucial role in the platform's architecture:
 
 ### 🌩️ Fog Stream Processing Layer
