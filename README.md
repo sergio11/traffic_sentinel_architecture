@@ -108,19 +108,24 @@ We welcome contributions from the community. Feel free to open issues, suggest e
 
 This project is licensed under the [MIT License](LICENSE).
 
-## Components
+## Tools screenshots
 
-The Traffic Sentinel system comprises the following components:
+In this section some details of the components that make the project possible will be shown and explained.
 
-- **Fog Node**: Responsible for intermediate data processing and communication with IP cameras, Apache Flink, and central servers.
-- **Provisioning Service**: A Flask-based web service that provides camera information to Fog nodes based on MAC addresses.
-- **Apache Flink Jobs**: Real-time data processing tasks for vehicle detection using the YOLO model.
-- **Redis Cache**: Used for caching authentication sessions and other temporary data.
-- **MongoDB Database**: Stores camera information associated with MAC addresses.
+HAProxy plays a pivotal role within the Traffic Sentinel architecture as a load balancer, primarily responsible for distributing incoming traffic evenly across multiple servers, applications, or nodes. This ensures the availability, reliability, and efficiency of the system.
 
 ![Screenshot 1](doc/screenshots/screenshot_1.PNG)
+
+In the context of Traffic Sentinel, HAProxy functions as a key traffic manager, directing incoming client requests to various components of the distributed system. For instance, it routes requests to different Flask services, MongoDB, Redis, Apache Flink, among others. This guarantees that each request is handled fairly and efficiently, preventing overload on any specific server or service and maintaining high overall system availability.
+
 ![Screenshot 2](doc/screenshots/screenshot_2.PNG)
+
+Beyond load balancing, HAProxy serves as a central point for traffic monitoring and control. It conducts health checks on nodes or services to ensure their proper functioning before redirecting traffic. Additionally, it implements advanced routing rules and filtering to optimize data flow and security, safeguarding the system against potential attacks or network issues.
+
 ![Screenshot 3](doc/screenshots/screenshot_3.PNG)
+
+In summary, within Traffic Sentinel, HAProxy provides a robust mechanism for efficiently distributing and managing network traffic, ensuring smooth and reliable operation of the system. It enhances scalability and availability of services offered by the traffic monitoring platform.
+
 ![Screenshot 4](doc/screenshots/screenshot_4.PNG)
 ![Screenshot 5](doc/screenshots/screenshot_5.PNG)
 ![Screenshot 12](doc/screenshots/screenshot_12.PNG)
