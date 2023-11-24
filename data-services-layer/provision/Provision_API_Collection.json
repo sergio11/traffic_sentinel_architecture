@@ -18,14 +18,17 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n\t\"mac_address\": \"00:1a:2b:3c:4d:5e\",\n\t\"camera_id\": \"camera123\"\n}"
+          "raw": "{\n\t\"mac_address\": \"00:1a:2b:3c:4d:5e\",\n\t\"camera_name\": \"YourCameraNameHere\"\n}"
         },
         "url": {
-          "raw": "http://localhost:5001/register",
+          "raw": "http://localhost:5001/provisioning/register",
+          "protocol": "http",
           "host": [
             "localhost"
           ],
+          "port": "5001",
           "path": [
+            "provisioning",
             "register"
           ]
         }
@@ -43,11 +46,14 @@
           }
         ],
         "url": {
-          "raw": "http://localhost:5001/00:1a:2b:3c:4d:5e",
+          "raw": "http://localhost:5001/provisioning/00:1a:2b:3c:4d:5e",
+          "protocol": "http",
           "host": [
             "localhost"
           ],
+          "port": "5001",
           "path": [
+            "provisioning",
             "00:1a:2b:3c:4d:5e"
           ]
         }
@@ -65,11 +71,14 @@
           }
         ],
         "url": {
-          "raw": "http://localhost:5001/00:1a:2b:3c:4d:5e",
+          "raw": "http://localhost:5001/provisioning/00:1a:2b:3c:4d:5e",
+          "protocol": "http",
           "host": [
             "localhost"
           ],
+          "port": "5001",
           "path": [
+            "provisioning",
             "00:1a:2b:3c:4d:5e"
           ]
         }

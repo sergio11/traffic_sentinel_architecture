@@ -508,6 +508,53 @@ namespace :SmartHighwayNet do
 				puts "Authentication failed. HTTP Error: #{auth_request.code}"
 			end
 		end
+
+		desc "Preload provisioning"
+		task :preload_provisioning => [:preload_cameras] do
+			# Endpoint for authentication
+			auth_uri = URI.parse('http://localhost:5003/users/authenticate')
+			auth_credentials = { username: 'root', password: 'trafficsentinel00' }
+
+			# Make a POST request to authenticate
+			auth_request = Net::HTTP.post(auth_uri, auth_credentials.to_json, 'Content-Type' => 'application/json')
+
+			if auth_request.code == '200'
+				auth_response = JSON.parse(auth_request.body)
+				session_token = auth_response['session_token']
+				puts "Authentication successful. Session token: #{session_token}"
+
+				# Read provisioning configuration from JSON file
+				provisioning_file = File.read('config/provisioning_config.json')
+				provisioning_data = JSON.parse(provisioning_file)
+
+				# Register each provisioning using the obtained session token
+				provisioning_data['provisioning'].each do |provision|
+					register_uri = URI.parse('http://localhost:5001/provisioning/register')
+					headers = {
+						'Content-Type' => 'application/json',
+						'Authentication' => session_token
+					}
+
+					# Make a POST request to register each provisioning
+					register_request_data = {
+						'mac_address': provision['mac_address'],
+						'camera_name': provision['camera_name']
+					}
+
+					puts "Registering provisioning for MAC address '#{provision['mac_address']}' with camera name '#{provision['camera_name']}'"
+
+					register_request = Net::HTTP.post(register_uri, register_request_data.to_json, headers)
+
+					if register_request.code == '201'
+						puts "Provisioning for '#{provision['mac_address']}' with camera name '#{provision['camera_name']}' registered successfully."
+					else
+						puts "Failed to register provisioning for '#{provision['mac_address']}' with camera name '#{provision['camera_name']}'. HTTP Error: #{register_request.code}"
+					end
+				end
+			else
+				puts "Authentication failed. HTTP Error: #{auth_request.code}"
+			end
+		end
 		
 		desc "Check  data services layer Deployment File"
 		task :check_deployment_file do
