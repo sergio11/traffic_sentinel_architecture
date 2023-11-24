@@ -28,16 +28,26 @@ def create_provisioning():
     try:
         data = request.json
         mac_address = data.get("mac_address")
-        camera_id = data.get("camera_id")
+        camera_name = data.get("camera_name")
 
         # Check if required data is missing
-        if not (mac_address and camera_id):
+        if not (mac_address and camera_name):
             return generate_response("error", "Missing required data"), 400
+
+        # Check if a camera with the provided camera_name exists and is provisioned
+        camera = db.cameras.find_one({"camera_name": camera_name})
+        if not camera:
+            return generate_response("error", "Camera not found"), 404
+
+        # Check if the camera is already provisioned
+        existing_provisioning = db.provisioning.find_one({"camera_id": str(camera["_id"]), "status": "enabled"})
+        if existing_provisioning:
+            return generate_response("error", "Camera is already provisioned"), 409
 
         # Prepare provisioning data
         provisioning_data = {
             "mac_address": mac_address,
-            "camera_id": camera_id,
+            "camera_id": str(camera["_id"]),  # Store the camera_id as a reference
             "status": "enabled",  # Set default status to "enabled"
             "timestamp": datetime.now()
         }
