@@ -1,6 +1,6 @@
 # Docker Compose Configuration for Fog Node Service
 
-version: '3'  # Specifies the Docker Compose version being used.
+version: '3'
 
 services:
 
@@ -9,5 +9,21 @@ services:
     image: ssanchez11/smart_highway_net_fog_node:0.0.1
     container_name: fog_node_1
     env_file:
-      - ./.env  # Specifies the environment file to use for this service.
-    mac_address: "02:42:ac:11:00:02"  # Specifies the MAC address for the container, useful in network configurations.
+      - ./.env
+    mac_address: "02:42:ac:11:00:02"
+
+  # Fog Node Service Configuration
+  fog_node_2:
+    image: ssanchez11/smart_highway_net_fog_node:0.0.1
+    container_name: fog_node_2
+    env_file:
+      - ./.env
+    mac_address: "23:54:ac:43:12:03"
+
+  # Fog Node Service Configuration
+  fog_node_3:
+    image: ssanchez11/smart_highway_net_fog_node:0.0.1
+    container_name: fog_node_3
+    env_file:
+      - ./.env
+    mac_address: "15:23:56:34:12:03"

@@ -65,6 +65,11 @@ namespace :SmartHighwayNet do
 			puts "Deploy data storage layer container"
 		end
 
+		# This Rake task 'initialize_and_unseal' is designed to automate the initialization and unsealing process of a Vault instance.
+		# It interacts with a Redis instance to retrieve the Vault root token and unseal keys, and checks the status of the Vault using a Docker container.
+		# If the Vault is sealed and uninitialized, it initializes the Vault, stores the generated unseal keys and root token in Redis,
+		# and then proceeds to unseal the Vault using the obtained keys. Finally, it displays the Vault's status and the root token stored in Redis,
+		# ensuring that the Vault is unsealed and ready for use. If the Vault is already initialized and unsealed, it confirms the status and retrieves the root token.
 		desc "Initialize and Unseal"
 		task :initialize_and_unseal do
 			redis = Redis.new(host: 'localhost', port: 6379)
@@ -108,6 +113,12 @@ namespace :SmartHighwayNet do
 			end
 		end
 
+		# This Rake task 'seal' automates the sealing process of a Vault instance.
+		# It interacts with a Redis instance to retrieve the Vault root token, which is necessary for sealing the Vault.
+		# Upon obtaining the root token from Redis, it checks the status of the Vault using a Docker container.
+		# If the Vault is both unsealed and initialized, the task proceeds to seal the Vault using the obtained root token by logging in and initiating the sealing operation.
+		# Once sealed, the Vault becomes inaccessible for security purposes.
+		# However, if the Vault is already sealed or not initialized, the sealing operation is not performed, and an appropriate message is displayed indicating the inability to seal the Vault.
 		desc "Seal"
 		task :seal do
 			redis = Redis.new(host: 'localhost', port: 6379)
@@ -130,6 +141,12 @@ namespace :SmartHighwayNet do
 			end
 		end
 
+		# This Rake task 'enable_secrets' facilitates the enabling of secrets within a Vault instance.
+		# It connects to a Redis instance to retrieve the Vault root token required for authentication.
+		# Subsequently, it checks the status of the Vault using a Docker container to ensure it's both unsealed and initialized.
+		# Upon meeting these conditions, the task proceeds by logging into Vault using the root token and enables the secrets engine for storing secrets.
+		# Specifically, it enables a key-value (kv) secrets engine at the specified path 'secret/data/fog-nodes-v1'.
+		# However, if the Vault is already sealed or not initialized, the operation to enable secrets is not allowed, and an appropriate message is displayed.
 		desc "Enable Secrets"
 		task :enable_secrets do
 			redis = Redis.new(host: 'localhost', port: 6379)
@@ -145,6 +162,15 @@ namespace :SmartHighwayNet do
 			end
 		end
 
+		# This Rake task 'preload_fog_nodes' serves the purpose of preloading fog node configurations into Vault.
+		# It involves configurations for Redis and Vault for data retrieval and storage.
+		# The Redis client is set up to connect to a local Redis instance to retrieve the Vault root token.
+		# The task configures the Vault client to communicate with the local Vault server using the obtained root token.
+		# It reads configuration data from a JSON file containing information about fog nodes and their configurations.
+		# Each fog node's data is preprocessed, and its information is stored securely in Vault.
+		# The task clears existing data at a specified Vault endpoint before storing new information.
+		# Specifically, fog node configurations such as passwords and code hashes are stored in Vault using unique identifiers derived from the MAC addresses of the nodes.
+		# However, in case of errors during data storage in Vault, appropriate error messages are displayed.
 		desc "Preload Fog Nodes in Vault"
 		task :preload_fog_nodes do
 			# Redis Configuration
@@ -159,7 +185,7 @@ namespace :SmartHighwayNet do
 				config.token = VAULT_TOKEN
 			end
 			# Load configuration from a JSON file
-			config_json = File.read('config.json')
+			config_json = File.read('config/fog_nodes_config.json')
 			config_data = JSON.parse(config_json)
 
 			code_path = config_data['code_path']
@@ -190,6 +216,14 @@ namespace :SmartHighwayNet do
 			end
 		end
 
+		# This Rake task 'retrieve_fog_nodes' facilitates the retrieval of fog node information securely stored in Vault.
+		# It involves configurations for Redis and Vault for data retrieval and communication.
+		# The Redis client connects to a local Redis instance to retrieve the Vault root token necessary for authentication with Vault.
+		# Subsequently, the task configures the Vault client to communicate with the local Vault server using the obtained root token.
+		# The task reads configuration data from a JSON file ('config.json') containing endpoint information for the fog nodes stored in Vault.
+		# It retrieves fog node information by listing the available data at the specified Vault endpoint.
+		# For each fog node listed, it retrieves and displays the associated information such as the MAC address, password, and hash code securely stored in Vault.
+		# However, in case of any errors during the retrieval process from Vault, appropriate error messages are displayed.
 		desc "Retrieve Fog Nodes from Vault"
 		task :retrieve_fog_nodes do
 			# Redis Configuration
@@ -206,7 +240,7 @@ namespace :SmartHighwayNet do
 			end
 
 			# Load configuration from a JSON file
-			config_json = File.read('config.json')
+			config_json = File.read('config/fog_nodes_config.json')
 			config_data = JSON.parse(config_json)
 
 			# Vault Secret Endpoint
