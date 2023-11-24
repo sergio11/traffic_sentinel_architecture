@@ -375,7 +375,6 @@ namespace :SmartHighwayNet do
 			compose_file_path = "./real-time-data-processing-layer/docker-compose.yml"
 			job_directory = "VideoFrameProcessor"  # Name of the Job directory
 			job_file = "#{job_directory}/main.py"
-			requirements_file = "#{job_directory}/requirements.txt"
 
 			# Check if the Job directory exists in the jobmanager container
 			check_directory_command = "docker-compose -f #{compose_file_path} exec -T jobmanager test -d /opt/flink/jobs/#{job_directory}"
@@ -397,22 +396,6 @@ namespace :SmartHighwayNet do
 			else
 				puts "Error: The #{job_file} file does not exist in the jobmanager container."
 				exit 1
-			end
-
-			# Check if requirements.txt exists in the jobmanager container
-			check_requirements_file_command = "docker-compose -f #{compose_file_path} exec -T jobmanager test -f /opt/flink/jobs/#{requirements_file}"
-			system(check_requirements_file_command)
-
-			if $?.success?
-				# Install Python dependencies from requirements.txt in the jobmanager container
-				puts "Installing Python dependencies from #{requirements_file} in the jobmanager container..."
-				install_requirements_command = "docker-compose -f #{compose_file_path} exec -T jobmanager pip install --no-cache-dir -r /opt/flink/jobs/#{requirements_file}"
-				system(install_requirements_command)
-
-				# Install Python dependencies in the taskmanager container as well
-				puts "Installing Python dependencies from #{requirements_file} in the taskmanager container..."
-				install_requirements_command_taskmanager = "docker-compose -f #{compose_file_path} exec -T taskmanager pip install --no-cache-dir -r /opt/flink/jobs/#{requirements_file}"
-				system(install_requirements_command_taskmanager)
 			end
 
 			# Run the Flink program in Python in the job-manager container
