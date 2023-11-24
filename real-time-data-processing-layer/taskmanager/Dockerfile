@@ -20,6 +20,7 @@ WORKDIR /opt/flink
 # Install Apache Flink dependencies
 RUN pip install apache-flink==1.18.0
 RUN pip install apache-flink-libraries==1.18.0
+RUN pip install VehicleDetectionTracker==0.0.30
 
 # Copy connectors from the connectors directory
 COPY ../connectors/flink-connector-kafka-1.17.1.jar ./lib/
