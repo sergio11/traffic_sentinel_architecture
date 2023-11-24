@@ -1,0 +1,34 @@
+{ 
+    "cameras": [
+        {
+          "camera_name": "TPAS-CCTV-I75-20172",
+          "region": "Alachua Noreste Florida",
+          "address": "US-10/US-98 @ NE 210th Ave",
+          "max_speed_limit": 120,
+          "camera_url": "[[CAMERA_URL]]",
+          "camera_url_params": "[[CAMERA_URL_PARAMS]]",
+          "camera_username": "test",
+          "camera_password": "test"
+        },
+        {
+          "camera_name": "7100_US441_S_of_SW_104th",
+          "region": "Alachua Noreste Florida",
+          "address": "US-441 S of SW 104th Ave",
+          "max_speed_limit": 120,
+          "camera_url": "[[CAMERA_URL]]",
+          "camera_url_params": "[[CAMERA_URL_PARAMS]]",
+          "camera_username": "test",
+          "camera_password": "test"
+        },
+        {
+          "camera_name": "1587N_75_N/O_Tuckers_Grd_M158",
+          "region": "Charlotte Suroeste Florida",
+          "address": "1587N_75_NO_Tuckers_Grd_M158",
+          "max_speed_limit": 120,
+          "camera_url": "[[CAMERA_URL]]",
+          "camera_url_params": "[[CAMERA_URL_PARAMS]]",
+          "camera_username": "test",
+          "camera_password": "test"
+        }
+    ]
+}

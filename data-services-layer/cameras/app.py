@@ -84,6 +84,11 @@ def register_camera():
         new_camera_info = db.cameras.find_one({"camera_name": data["camera_name"]})
 
         logger.info("Camera registered successfully.")
+
+        # Convert ObjectId to string before JSON serialization
+        if new_camera_info and '_id' in new_camera_info:
+            new_camera_info['_id'] = str(new_camera_info['_id'])
+
         return generate_response("success", "Camera registered successfully", camera=new_camera_info), 200
 
     except Exception as e:

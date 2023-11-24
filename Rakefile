@@ -453,6 +453,61 @@ namespace :SmartHighwayNet do
 			end
 			puts `docker images`
 		end
+
+		desc "Check admin user status"
+		task :check_admin_user do
+			require 'net/http'
+
+			uri = URI.parse('http://localhost:5003/users/check-admin')
+			request = Net::HTTP::Get.new(uri)
+			response = Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(request) }
+
+			if response.code == '200'
+				puts "Admin user status: #{response.body}"
+			else
+				puts "Failed to check admin user status. HTTP Error: #{response.code}"
+			end
+		end
+
+		desc "Preload cameras"
+		task :preload_cameras => [ :check_admin_user ] do
+			# Endpoint for authentication
+			auth_uri = URI.parse('http://localhost:5003/users/authenticate')
+			auth_credentials = { username: 'root', password: 'trafficsentinel00' }
+			
+			# Make a POST request to authenticate
+			auth_request = Net::HTTP.post(auth_uri, auth_credentials.to_json, 'Content-Type' => 'application/json')
+			
+			if auth_request.code == '200'
+				auth_response = JSON.parse(auth_request.body)
+				session_token = auth_response['session_token']
+				puts "Auth successfully, session token #{session_token}"
+				# Read cameras configuration from JSON file
+				cameras_file = File.read('config/cameras_config.json')
+				cameras_data = JSON.parse(cameras_file)
+				
+				# Register each camera using the obtained session token
+				cameras_data['cameras'].each do |camera|
+					register_uri = URI.parse('http://localhost:5002/cameras/register')
+					headers = {
+						'Content-Type' => 'application/json',
+						'Authentication' => session_token
+					}
+					puts "Register camera #{camera["camera_name"]}"
+					
+					# Make a POST request to register each camera
+					register_request = Net::HTTP.post(register_uri, camera.to_json, headers)
+					
+					if register_request.code == 200
+						puts "Camera '#{camera['camera_name']}' registered successfully."
+					else
+						puts "Failed to register camera '#{camera['camera_name']}'. HTTP Error: #{register_request.code}"
+					end
+				end
+			else
+				puts "Authentication failed. HTTP Error: #{auth_request.code}"
+			end
+		end
 		
 		desc "Check  data services layer Deployment File"
 		task :check_deployment_file do
