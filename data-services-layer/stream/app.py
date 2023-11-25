@@ -5,6 +5,7 @@ import os
 import logging
 from pymongo import MongoClient
 from bson import ObjectId
+import jwt
 
 # Event logging configuration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -16,6 +17,8 @@ MONGO_DB = os.environ.get("MONGO_DB", "smarthighwaynet")
 mongo_client = MongoClient(MONGO_CONNECTION_URL)
 db = mongo_client[MONGO_DB]
 
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "secret_key")
+
 # Initialize Flask app and SocketIO
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -24,6 +27,21 @@ clientManager = ClientManager(logger, onNewPayloadConsumedCallback= lambda frame
     socketio.emit('new_frame', frame_data, to=cliend_sid)                          
 )
 socketio.on_namespace(clientManager)
+
+def has_session_valid(data):
+    session_token = data.get('session_token')
+    if not session_token:
+        emit('auth_error', {'message': 'Unauthorized: JWT token is missing'})
+        return False
+    try:
+        jwt.decode(session_token, JWT_SECRET_KEY, algorithms=['HS256'])
+        return True
+    except jwt.ExpiredSignatureError:
+        emit('auth_error', {'message': 'Unauthorized: Token has expired'})
+        return False
+    except jwt.InvalidTokenError:
+        emit('auth_error', {'message': 'Unauthorized: Invalid token'})
+        return False
 
 # Socket event handlers
 
@@ -41,6 +59,8 @@ def on_disconnect():
 
 @socketio.on('subscribe_camera')
 def subscribe_camera(data):
+    if not has_session_valid(data):
+        return
     # Method called when a client requests to subscribe to a camera
     client_sid = request.sid
     camera_id = data.get('camera_id')
@@ -56,6 +76,8 @@ def subscribe_camera(data):
 
 @socketio.on('unsubscribe_camera')
 def unsubscribe_camera(data):
+    if not has_session_valid(data):
+        return
     # Method called when a client requests to unsubscribe from a camera
     client_sid = request.sid
     camera_id = data.get('camera_id')
