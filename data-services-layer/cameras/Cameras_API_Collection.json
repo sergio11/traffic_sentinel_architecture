@@ -16,10 +16,10 @@
             "raw": "{\n    \"camera_name\": \"TPAS-CCTV-I75-20172\",\n    \"region\": \"Alachua Noreste Florida\",\n    \"address\": \"US-10/US-98 @ NE 210th Ave\",\n    \"max_speed_limit\": 75,\n    \"camera_url\": \"your_camera_url\",\n    \"camera_url_params\": \"your_camera_url_params\",\n    \"camera_username\": \"your_camera_username\",\n    \"camera_password\": \"your_camera_password\"\n}"
           },
           "url": {
-            "raw": "http://localhost:5000/cameras/register",
+            "raw": "http://localhost:5002/cameras/register",
             "protocol": "http",
             "host": ["localhost"],
-            "port": "5000",
+            "port": "5002",
             "path": ["cameras", "register"]
           }
         },
@@ -35,10 +35,10 @@
             "raw": "{\n    \"camera_name\": \"TPAS-CCTV-I75-20172\",\n    \"region\": \"New Region\",\n    \"address\": \"New Address\",\n    \"max_speed_limit\": 80,\n    \"camera_url\": \"your_new_camera_url\",\n    \"camera_url_params\": \"your_new_camera_url_params\",\n    \"camera_username\": \"your_new_camera_username\",\n    \"camera_password\": \"your_new_camera_password\"\n}"
           },
           "url": {
-            "raw": "http://localhost:5000/cameras/update",
+            "raw": "http://localhost:5002/cameras/update",
             "protocol": "http",
             "host": ["localhost"],
-            "port": "5000",
+            "port": "5002",
             "path": ["cameras", "update"]
           }
         },
@@ -50,10 +50,10 @@
           "method": "DELETE",
           "header": [],
           "url": {
-            "raw": "http://localhost:5000/cameras/delete/your_camera_id",
+            "raw": "http://localhost:5002/cameras/delete/your_camera_id",
             "protocol": "http",
             "host": ["localhost"],
-            "port": "5000",
+            "port": "5002",
             "path": ["cameras", "delete", "your_camera_id"]
           }
         },
@@ -65,10 +65,10 @@
             "method": "GET",
             "header": [],
             "url": {
-                "raw": "http://localhost:5000/your_camera_id/frames/list?start_time=2023-11-10T00:00:00&end_time=2023-11-11T00:00:00&page=1&page_size=10&exceeded_max_speed=true",
+                "raw": "http://localhost:5002/your_camera_id/frames/list?start_time=2023-11-10T00:00:00&end_time=2023-11-11T00:00:00&page=1&page_size=10&exceeded_max_speed=true",
                 "protocol": "http",
                 "host": ["localhost"],
-                "port": "5000",
+                "port": "5002",
                 "path": ["your_camera_id", "frames", "list"],
                 "query": [
                     {
@@ -116,10 +116,10 @@
             "raw": "{\n    \"mac_address\": \"02:42:ac:11:00:02\",\n    \"processed_frame\": \"{...}\"  // Replace with your processed frame data\n}"
           },
           "url": {
-            "raw": "http://localhost:5000/frames/save",
+            "raw": "http://localhost:5002/frames/save",
             "protocol": "http",
             "host": ["localhost"],
-            "port": "5000",
+            "port": "5002",
             "path": ["frames", "save"]
           }
         },
@@ -131,11 +131,11 @@
             "method": "GET",
             "header": [],
             "url": {
-                "raw": "http://localhost:5000/cameras/frames/image/your_image_id",
+                "raw": "http://localhost:5002/cameras/frames/image/image_id",
                 "protocol": "http",
                 "host": ["localhost"],
-                "port": "5000",
-                "path": ["cameras", "frames", "image", "your_image_id"]
+                "port": "5002",
+                "path": ["cameras", "frames", "image", "image_id"]
             }
         },
         "response": []
@@ -146,12 +146,12 @@
             "method": "GET",
             "header": [],
             "url": {
-                "raw": "http://localhost:5000/cameras/list",
+                "raw": "http://localhost:5002/cameras/list",
                 "protocol": "http",
                 "host": [
                     "localhost"
                 ],
-                "port": "5000",
+                "port": "5002",
                 "path": [
                     "cameras",
                     "list"
