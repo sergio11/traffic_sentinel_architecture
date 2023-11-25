@@ -678,7 +678,7 @@
                     </entry>
                     <entry>
                         <key>topic</key>
-                        <value>iot-camera-frames-notified</value>
+                        <value>iot-camera-frames-completed</value>
                     </entry>
                     <entry>
                         <key>acks</key>
