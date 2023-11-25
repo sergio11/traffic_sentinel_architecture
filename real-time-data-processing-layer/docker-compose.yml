@@ -7,10 +7,10 @@ services:
     image: ssanchez11/smart_highway_net_job_manager_flink:0.0.1
     container_name: job-manager-flink
     volumes:
-      - ./jobs:/opt/flink/jobs  # Map local jobs directory to the container
+      - ./jobs:/opt/flink/jobs
     ports:
-      - "8085:8081"  # Map container port 8081 to host port 8085
-    command: jobmanager  # Run the job manager
+      - "8085:8081"
+    command: jobmanager
     env_file:
       - ./.env
     environment:
@@ -21,15 +21,14 @@ services:
       - smart-highway-net
 
   # Flink Task Manager service for distributed processing
-  taskmanager:
+  taskmanager_1:
     image: ssanchez11/smart_highway_net_task_manager_flink:0.0.1
-    container_name: task-manager-flink
+    container_name: task-manager-flink-1
     volumes:
-      - ./jobs:/opt/flink/jobs  # Map local jobs directory to the container
+      - ./jobs:/opt/flink/jobs
     depends_on:
-      - jobmanager  # Ensure that the job manager is ready before starting the task manager
-    command: taskmanager  # Run the task manager
-    scale: 1  # Scale to 1 instance
+      - jobmanager
+    command: taskmanager 
     env_file:
       - ./.env
     environment:
@@ -40,7 +39,25 @@ services:
     networks:
       - smart-highway-net
 
-# Define a custom bridge network for the services to communicate
+  #Flink Task Manager service for distributed processing
+  taskmanager_2:
+    image: ssanchez11/smart_highway_net_task_manager_flink:0.0.1
+    container_name: task-manager-flink-2
+    volumes:
+      - ./jobs:/opt/flink/jobs
+    depends_on:
+      - jobmanager
+    command: taskmanager 
+    env_file:
+      - ./.env
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+    networks:
+      - smart-highway-net
+
 networks:
   smart-highway-net:
-    driver: bridge  # Use the bridge network driver
+    driver: bridge
