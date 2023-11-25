@@ -1,5 +1,4 @@
 import base64
-from io import BytesIO
 import io
 import json
 import logging
@@ -162,7 +161,7 @@ def display_home_screen():
     vehicle_table_frame = tk.Frame(root, bg="white")
     vehicle_table_frame.grid(row=2, column=0, columnspan=2, sticky="nsew")
 
-    tree = Treeview(vehicle_table_frame, columns=("Vehicle ID", "Type", "Color"))
+    tree = Treeview(vehicle_table_frame, columns=("Vehicle ID", "Type", "Color", "Image"))
     scrollbar = tk.Scrollbar(vehicle_table_frame, orient='vertical', command=tree.yview)
     tree.configure(yscroll=scrollbar.set)
 
@@ -170,18 +169,10 @@ def display_home_screen():
     tree.heading("Vehicle ID", text="Vehicle ID")
     tree.heading("Type", text="Type")
     tree.heading("Color", text="Color")
+    tree.heading("Image", text="Image")
 
     scrollbar.pack(side='right', fill='y')
     tree.pack(expand=True, fill='both')
-
-    vehicle_data_list = [
-        {"id": "1", "type": "SUV", "color": "Black"},
-        {"id": "2", "type": "Sedan", "color": "Red"},
-        {"id": "3", "type": "Truck", "color": "White"},
-    ]
-
-    for idx, vehicle in enumerate(vehicle_data_list):
-        tree.insert("", tk.END, text=str(idx), values=(vehicle.get("id", "N/A"), vehicle.get("type", "N/A"), vehicle.get("color", "N/A")))
 
     bottom_frame = tk.Frame(root, bg="white")
     bottom_frame.grid(row=3, column=0, columnspan=2, sticky="ew")
@@ -261,7 +252,7 @@ def display_home_screen():
         if timestamp:
             try:
                 datetime_obj = datetime.datetime.fromtimestamp(timestamp)
-                formatted_timestamp = datetime_obj.strftime("%Y-%m-%d %H:%M:%S")  # Formato personalizable
+                formatted_timestamp = datetime_obj.strftime("%Y-%m-%d %H:%M:%S")
             except Exception as e:
                 logger.error(f"Error formatting timestamp: {e}")
         frame_timestamp_label_value["text"] = formatted_timestamp
@@ -279,6 +270,27 @@ def display_home_screen():
         if 'annotated_frame_base64' in processed_frame_payload:
             annotated_frame_base64 = processed_frame_payload['annotated_frame_base64']
             update_annotated_frame(annotated_frame_base64)
+
+        tree.delete(*tree.get_children())
+
+        if 'detected_vehicles' in processed_frame_payload:
+            detected_vehicles = processed_frame_payload['detected_vehicles']
+            for idx, vehicle in enumerate(detected_vehicles):
+                vehicle_id = vehicle.get('vehicle_id', 'N/A')
+                vehicle_type = vehicle.get('vehicle_type', 'N/A')
+                color_info = json.loads(vehicle.get('color_info', '[]'))
+                color = color_info[0]['color'] if color_info else 'N/A'
+
+                tree.insert("", tk.END, text=str(idx), values=(vehicle_id, vehicle_type, color))
+
+                vehicle_frame_base64 = vehicle.get('vehicle_frame_base64', None)
+                if vehicle_frame_base64:
+                    vehicle_frame_bytes = base64.b64decode(vehicle_frame_base64.split(',')[-1])
+                    vehicle_frame_image = Image.open(io.BytesIO(vehicle_frame_bytes))
+                    vehicle_frame_image = vehicle_frame_image.resize((150, 100), Image.ANTIALIAS)
+                    vehicle_frame_tk = ImageTk.PhotoImage(vehicle_frame_image)
+
+                    tree.insert("", tk.END, values=("", "", "", vehicle_frame_tk))
         
     def update_gui():
         try:
