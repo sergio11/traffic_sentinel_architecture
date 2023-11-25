@@ -125,7 +125,7 @@ class ClientManager(Namespace):
                 payload = json.loads(frame_data) 
                 camera_id = payload.get('camera_id')
                 self.logger.info(f"Received new message from Kafka with camera id: {camera_id}")
-                for client_sid, subscribed_camera_id in self.clients.items():
+                for client_sid, subscribed_camera_id in list(self.clients.items()):
                     if subscribed_camera_id and subscribed_camera_id == camera_id:
                         if self.onNewPayloadConsumedCallback:
                             self.onNewPayloadConsumedCallback(frame_data, client_sid)
