@@ -7,6 +7,7 @@ import queue
 import threading
 import time
 import tkinter as tk
+from tkinter import ttk
 from tkinter.ttk import Treeview
 from PIL import Image, ImageTk
 import requests
@@ -20,13 +21,24 @@ AUTHENTICATE_ENDPOINT = os.environ.get("AUTHENTICATE_ENDPOINT", "http://localhos
 STREAM_SERVICE_ENDPOINT = os.environ.get("STREAM_SERVICE_ENDPOINT", "http://localhost:5004")
 STREAM_SERVICE_NAMESPACE = os.environ.get("STREAM_SERVICE_NAMESPACE", "/traffic_sentinel_stream")
 
+def _bind_event_data(widget, sequence, func, add = None):
+    def _substitute(*args):
+        e = lambda: None #simplest object with __dict__
+        e.data = eval(args[0])
+        e.widget = widget
+        return (e,)
+    funcid = widget._register(func, _substitute, needcleanup=1)
+    cmd = '{0}if {{"[{1} %d]" == "break"}} break\n'.format('+' if add else '', funcid)
+    widget.tk.call('bind', widget._w, sequence, cmd)
+
+
 def display_login_screen():
     root = tk.Tk()
     root.title("Traffic Sentinel - Login")
     root.geometry("800x600")
 
     # Load background image with transparency
-    background_path = os.path.join("resources", "background.jpg")  # Use an image with transparency (e.g., PNG)
+    background_path = os.path.join("resources", "background.jpg")
     if os.path.exists(background_path):
         background_img = Image.open(background_path)
         background_img = background_img.resize((800, 600), Image.LANCZOS)
@@ -46,9 +58,9 @@ def display_login_screen():
         img = Image.open(image_path)
         img = img.resize((300, 200), Image.LANCZOS)
         photo = ImageTk.PhotoImage(img)
-        image_label = tk.Label(content_frame, image=photo, bg="white")  # Use a solid background color for the image label
+        image_label = tk.Label(content_frame, image=photo, bg="white")
         image_label.image = photo
-        image_label.pack(pady=(0, 10))  # Add vertical space above and below
+        image_label.pack(pady=(0, 10))
 
     def login():
         username = entry_username.get()
@@ -59,7 +71,8 @@ def display_login_screen():
             response = requests.post(AUTHENTICATE_ENDPOINT, json=payload)
             if response.status_code == 200:
                 logger.info("User authenticated successfully.")
-                root.event_generate("<<SuccessfulAuth>>", when="tail")
+                session_token = response.json()["session_token"]
+                root.event_generate("<<SuccessfulAuth>>", when="tail", data={"session_token": session_token})
             else:
                 logger.error("Invalid credentials provided.")
                 root.event_generate("<<UnSuccessfulAuth>>", when="tail")
@@ -83,21 +96,100 @@ def display_login_screen():
 
     def on_successful_auth(event):
         root.destroy()
-        display_home_screen()
+        logger.info(f"Authenticate successfully with session token: #{event.data['session_token']}")
+        display_home_screen(event.data['session_token'])
 
     def on_unsuccessful_auth(event):
         label_error.config(text="Invalid credentials", fg="red")
 
-    root.bind("<<SuccessfulAuth>>", on_successful_auth)
+    _bind_event_data (root, '<<SuccessfulAuth>>', on_successful_auth)
     root.bind("<<UnSuccessfulAuth>>", on_unsuccessful_auth)
 
     root.mainloop()
 
+def display_home_screen(session_token):
 
-def display_home_screen():
-    event_queue = queue.Queue()
+    def load_cameras():
+        headers = {
+            "Authentication": session_token
+        }
+        response = requests.get("http://localhost:5002/cameras/list", headers=headers)
+        if response.status_code == 200:
+            cameras_data = response.json()["data"]["cameras"]
+            root.event_generate("<<CamerasLoaded>>", when="tail", data=cameras_data)
+
+
+    def on_cameras_loaded(event):
+        cameras_data = event.data
+        camera_table_frame = tk.Frame(root)
+        camera_table_frame.grid(row=1, column=0, sticky="nsew")
+
+        def on_table_click(event):
+            item = tree.focus()
+            if item:
+                camera_id = tree.item(item, "values")[0] 
+                camera_name = tree.item(item, "values")[2]
+                display_monitoring_screen(session_token, camera_id, camera_name)
+
+
+        tree = ttk.Treeview(camera_table_frame, columns=("Camera ID", "Address", "Camera Name", "Max Speed Limit", "Region", "Vehicles Detected"))
+        scrollbar = ttk.Scrollbar(camera_table_frame, orient="vertical", command=tree.yview)
+        tree.configure(yscroll=scrollbar.set)
+
+        tree.heading("#0", text="Index")
+        tree.heading("Camera ID", text="Camera ID")
+        tree.heading("Address", text="Address")
+        tree.heading("Camera Name", text="Camera Name")
+        tree.heading("Max Speed Limit", text="Max Speed Limit")
+        tree.heading("Region", text="Region")
+        tree.heading("Vehicles Detected", text="Vehicles Detected")
+
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        tree.grid(row=0, column=0, sticky="nsew")
+
+        for i, camera in enumerate(cameras_data, start=1):
+            tree.insert("", "end", text=f"{i}", values=(
+                camera["_id"],
+                camera["address"],
+                camera["camera_name"],
+                camera["max_speed_limit"],
+                camera["region"],
+                camera.get("vehicles_detected", "-"),
+                ""
+            ))
+
+        tree.bind("<Double-1>", on_table_click)
+
     root = tk.Tk()
     root.title("Traffic Sentinel - HOME")
+    root.geometry("1200x400")
+
+    title_frame = tk.Frame(root, bg="white", height=50)
+    title_frame.grid(row=0, column=0, columnspan=2, sticky="ew")
+
+    logo_path = "resources/logo.png"
+    try:
+        logo_image = Image.open(logo_path)
+        logo_image = logo_image.resize((40, 40), Image.LANCZOS)
+        logo = ImageTk.PhotoImage(logo_image)
+        logo_label = tk.Label(title_frame, image=logo, bg="lightgreen")
+        logo_label.image = logo
+        logo_label.grid(row=0, column=0, padx=10, pady=5)
+    except FileNotFoundError:
+        print(f"File {logo_path} not found.")
+
+    app_title_label = tk.Label(title_frame, bg="white", text="Traffic Sentinel - Driving Smarter Roads with IoT Traffic Monitoring", font=("Arial", 16, "bold"))
+    app_title_label.grid(row=0, column=1, padx=10, pady=10)
+
+    _bind_event_data (root, '<<CamerasLoaded>>', on_cameras_loaded)
+    threading.Thread(target=load_cameras, daemon=True).start()
+    root.mainloop()
+
+
+def display_monitoring_screen(session_token, camera_id, camera_name):
+    event_queue = queue.Queue()
+    root = tk.Tk()
+    root.title(f"Traffic Sentinel - Monitoring #{camera_name}")
     root.geometry("1200x800")
 
     # Function to create and format labels for displaying information
@@ -210,8 +302,7 @@ def display_home_screen():
             @sio.on('connect')
             def on_connect():
                 logger.info("Connected to server")
-                camera_id = '654f6baff3d3ad4f84c41f9e'
-                sio.emit('subscribe_camera', {'camera_id': camera_id})
+                sio.emit('subscribe_camera', {'session_token': session_token, 'camera_id': camera_id})
                 logger.info(f"Subscribed to camera {camera_id}")
                 root.event_generate("<<OnConnected>>", when="tail")
 
