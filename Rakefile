@@ -205,13 +205,13 @@ namespace :SmartHighwayNet do
 			end
 
 			fog_nodes.each do |node|
-				mac_without_colons = node['mac_address'].delete(":")
+				mac_without_colons = node['mac_address'].delete(":").downcase
 				begin
-				# Store the new information in Vault
-				Vault.logical.write("#{vault_secret_endpoint}/#{mac_without_colons}", data: node['password'], code_hash: code_hash)
-				puts "Fog node with MAC #{node['mac_address']} with password: #{node['password']} and code hash: #{code_hash} preloaded in Vault"
+					# Store the new information in Vault
+					Vault.logical.write("#{vault_secret_endpoint}/#{mac_without_colons}", data: node['password'], code_hash: code_hash)
+					puts "Fog node with MAC #{node['mac_address']} with password: #{node['password']} and code hash: #{code_hash} preloaded in Vault"
 				rescue Vault::HTTPClientError => e
-				puts "Error from Vault server: #{e.response.body}"
+					puts "Error from Vault server: #{e.response.body}"
 				end
 			end
 		end
@@ -249,16 +249,67 @@ namespace :SmartHighwayNet do
 			begin
 				response = Vault.logical.list(vault_secret_endpoint)
 				fog_nodes = response.map(&:to_s)
-				fog_nodes.each do |mac_address|
-				puts "Retrieving information for Fog Node with MAC Address: #{mac_address}"
-				response = Vault.logical.read("#{vault_secret_endpoint}/#{mac_address}")
-				puts "Fog Node with MAC Address #{mac_address}"
-				puts "Password: #{response.data[:data]}"
-				puts "Hashcode: #{response.data[:code_hash]}"
-				puts "---"
+				if fog_nodes.empty?
+				  puts "No fog nodes found in the Vault."
+				else
+				  fog_nodes.each do |mac_address|
+					mac_address = mac_address.downcase
+					puts "Retrieving information for Fog Node with MAC Address: #{mac_address}"
+					response = Vault.logical.read("#{vault_secret_endpoint}/#{mac_address}")
+					puts "Fog Node with MAC Address #{mac_address}"
+					puts "Password: #{response.data[:data]}"
+					puts "Hashcode: #{response.data[:code_hash]}"
+					puts "---"
+				  end
 				end
 			rescue Vault::HTTPClientError => e
 				puts "Error from Vault server: #{e.response.body}"
+			end
+		end
+
+		desc 'Empty Vault (Delete all secrets)'
+		task :empty_vault do
+			redis_client = Redis.new(host: 'localhost', port: 6379, db: 0)
+			# Vault Configuration
+			VAULT_ADDRESS = 'http://localhost:8200'
+			VAULT_TOKEN = redis_client.get('vault_root_token')
+			puts "Vault token from Redis: #{VAULT_TOKEN}"
+
+			Vault.configure do |config|
+				config.address = VAULT_ADDRESS
+				config.token = VAULT_TOKEN
+			end
+
+			# Load configuration from a JSON file
+			config_json = File.read('config/fog_nodes_config.json')
+			config_data = JSON.parse(config_json)
+
+			# Vault Secret Endpoint
+			vault_secret_endpoint = config_data['vault_secret_endpoint']
+
+			# Confirm with the user before proceeding
+			print 'This will delete all secrets from the Vault. Are you sure? (yes/no): '
+			confirmation = $stdin.gets.chomp.downcase
+
+			if confirmation == 'yes'
+				begin
+					# List secrets in Vault
+					response = Vault.logical.list(vault_secret_endpoint)
+					secrets = response.map(&:to_s)
+
+					# Delete each secret in Vault
+					secrets.each do |secret|
+						puts "Secret to delete #{secret}"
+						Vault.logical.delete("#{vault_secret_endpoint}/#{secret}")
+						puts "Secret deleted!"
+					end
+
+					puts 'Vault emptied successfully.'
+				rescue Vault::HTTPClientError => e
+					puts "Error from Vault server: #{e.response.body}"
+				end
+			else
+				puts 'Operation cancelled. Vault has not been emptied.'
 			end
 		end
 
