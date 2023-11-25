@@ -69,7 +69,12 @@
                 "protocol": "http",
                 "host": ["localhost"],
                 "port": "5002",
-                "path": ["your_camera_id", "frames", "list"],
+                "path": [
+                  "cameras",
+                  "your_camera_id", 
+                  "frames", 
+                  "list"
+                ],
                 "query": [
                     {
                         "key": "start_time",
