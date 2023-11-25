@@ -91,23 +91,6 @@ This layer houses multiple Flask services offering diverse functionalities:
 - **MinIO 📦:** An object storage server compatible with Amazon S3 API used for storing images and files in a scalable and high-performance manner.
 - **HAproxy 🔄:** An open-source load balancer used for improving the availability and reliability of the platform, ensuring smooth traffic management and distribution.
 
-## 🚀 Getting Started
-
-To begin using Traffic Sentinel, follow these steps:
-
-1. Clone the Traffic Sentinel repository.
-2. Install the required dependencies using the provided instructions.
-3. Configure each layer and service according to the setup guide.
-4. Run the platform using the designated start commands for each component.
-
-## 🤝 Contributing
-
-We welcome contributions from the community. Feel free to open issues, suggest enhancements, or submit pull requests to help enhance Traffic Sentinel.
-
-## 📝 License
-
-This project is licensed under the [MIT License](LICENSE).
-
 ## Tools screenshots
 
 In this section some details of the components that make the project possible will be shown and explained.
@@ -145,19 +128,57 @@ Flink offers advanced real-time data processing capabilities that empower Traffi
 Furthermore, Apache Flink is highly scalable and fault-tolerant. It efficiently handles large volumes of data and maintains system reliability even under high-stress situations. This scalability ensures Traffic Sentinel's optimal performance as the volume of data and connected IoT devices continues to grow.
 
 ![Screenshot 13](doc/screenshots/screenshot_13.PNG)
+
+### Apache Nifi
+
+Apache NiFi plays a fundamental role in the Traffic Sentinel project as a data orchestration and integration tool. It operates as the data movement engine, facilitating the flow and management of data across different components of the IoT-based traffic monitoring system.
+
 ![Screenshot 6](doc/screenshots/screenshot_6.PNG)
+
+The primary purpose of Apache NiFi within Traffic Sentinel is to orchestrate the movement of data between various sources, processing layers, and storage systems. It provides a visual interface for designing data flows, enabling users to create, monitor, and manage complex data pipelines easily.
+
 ![Screenshot 7](doc/screenshots/screenshot_7.PNG)
+
+NiFi's data flow capabilities are integral in handling diverse data sources and formats, allowing Traffic Sentinel to collect real-time traffic data from IoT devices, such as traffic cameras and sensors, and efficiently route it for further processing and analysis.
+
 ![Screenshot 8](doc/screenshots/screenshot_8.PNG)
+
+Moreover, Apache NiFi enhances the system's efficiency by integrating with different data transfer protocols, including MQTT and Kafka, ensuring seamless communication and data transfer between components. It optimizes the integration between Fog nodes, data processing layers, and storage systems, thereby streamlining the traffic monitoring process.
+
 ![Screenshot 9](doc/screenshots/screenshot_9.PNG)
 
+Overall, Apache NiFi serves as a crucial component in the Traffic Sentinel architecture, providing a scalable, efficient, and user-friendly platform for orchestrating data movement, transforming, routing, and optimizing the flow of information within the IoT-based traffic monitoring system.
+
+### Apache Kafka
+
+Kafka, in the context of Traffic Sentinel, operates as a distributed streaming platform, providing a highly scalable and fault-tolerant infrastructure for handling real-time data streams. It serves as a central nervous system for the IoT-based traffic monitoring system, enabling reliable and high-throughput data ingestion, storage, and real-time processing of traffic-related information.
+
 ![Screenshot 10](doc/screenshots/screenshot_10.PNG)
+
+Kafka acts as a messaging backbone, facilitating the exchange of data between different components of the Traffic Sentinel architecture. It enables the ingestion of live video streams, sensor data, and other traffic-related information from various sources, including IoT devices like cameras, into the system. Kafka's distributed nature and fault-tolerant design ensure the durability and reliability of data during transit, making it suitable for handling large volumes of streaming data.
+
 ![Screenshot 11](doc/screenshots/screenshot_11.PNG)
+
+Moreover, the integration of AkHQ.io, a graphical user interface (GUI) for managing and monitoring Apache Kafka, enhances the observability and management capabilities of the Kafka infrastructure within Traffic Sentinel. AkHQ.io provides a user-friendly interface for monitoring Kafka clusters, topics, and brokers, allowing administrators and developers to visualize Kafka-related metrics, monitor consumer lag, manage topics, and perform administrative tasks efficiently.
+
 ![Screenshot 12](doc/screenshots/screenshot_15.PNG)
-## Contributing
 
-Contributions are welcome! If you'd like to contribute to Traffic Sentinel, please follow the guidelines in [CONTRIBUTING.md](CONTRIBUTING.md).
+By combining Kafka as the streaming platform and AkHQ.io as the visualization and management tool, Traffic Sentinel benefits from a robust and scalable architecture for handling real-time traffic data. Kafka ensures reliable data streaming and processing, while AkHQ.io offers comprehensive monitoring and management features, empowering users to effectively oversee and optimize the Kafka infrastructure powering the traffic monitoring system.
 
-## License
+## 🚀 Getting Started
+
+To begin using Traffic Sentinel, follow these steps:
+
+1. Clone the Traffic Sentinel repository.
+2. Install the required dependencies using the provided instructions.
+3. Configure each layer and service according to the setup guide.
+4. Run the platform using the designated start commands for each component.
+
+## 🤝 Contributing
+
+We welcome contributions from the community. Feel free to open issues, suggest enhancements, or submit pull requests to help enhance Traffic Sentinel.
+
+## 📝 License
 
 This project is licensed under the [MIT License](LICENSE).
 
