@@ -212,6 +212,23 @@ Furthermore, MongoDB's distributed nature and horizontal scalability offer the c
 ![Screenshot 33](doc/screenshots/screenshot_33.PNG)
 
 ![Screenshot 14](doc/screenshots/screenshot_14.PNG)
+
+### Flask Services
+
+The Flask services within the data services layer play a pivotal role in mediating interactions between the application's frontend and the MongoDB database. These services serve as a bridge, offering a set of endpoints that facilitate Create, Read, Update, and Delete (CRUD) operations on the database. They handle data requests, processing incoming HTTP requests from the frontend, and executing corresponding actions on the database, ensuring seamless data access.
+
+![Screenshot 35](doc/screenshots/screenshot_35.PNG)
+
+One primary purpose of these Flask services is to encapsulate the business logic associated with data management. They implement specific rules, validations, and transformations required before storing or retrieving data from MongoDB. These services enable developers to centralize and organize intricate data-handling operations, ensuring data consistency, integrity, and adherence to defined business rules or constraints.
+
+![Screenshot 36](doc/screenshots/screenshot_36.PNG)
+
+Furthermore, these Flask services provide secure access to the database. They manage authentication, authorization, and data validation, verifying the legitimacy of incoming requests, authorizing access based on user permissions, and enforcing security measures to protect sensitive data. This layer ensures that only authorized entities can access, modify, or delete specific data within the MongoDB database, safeguarding against potential security threats and unauthorized access.
+
+![Screenshot 19](doc/screenshots/screenshot_19.PNG)
+
+![Screenshot 20](doc/screenshots/screenshot_20.PNG)
+
 ## 🤝 Contributing
 
 We welcome contributions from the community. Feel free to open issues, suggest enhancements, or submit pull requests to help enhance Traffic Sentinel.
