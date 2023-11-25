@@ -125,7 +125,7 @@ Here are some screenshots that demonstrate the functionality of Traffic Sentinel
 
 | Screenshot 1 | Screenshot 2 |
 |-------------- |-------------- |
-| ![Screenshot](doc/screenshots/screenshot_32.PNG) | ![Screenshot](doc/screenshots/screenshot_32.PNG) |
+| ![Screenshot](doc/screenshots/screenshot_32.PNG) | ![Screenshot](doc/screenshots/screenshot_37.PNG) |
 
 ## Tools screenshots
 
@@ -228,6 +228,16 @@ Furthermore, these Flask services provide secure access to the database. They ma
 ![Screenshot 19](doc/screenshots/screenshot_19.PNG)
 
 ![Screenshot 20](doc/screenshots/screenshot_20.PNG)
+
+### Docker & Docker Compose
+
+Docker is pivotal in SmartHighwayNet, enabling the encapsulation of services into containers for consistent deployment across various environments. It simplifies integration, ensuring each application carries its dependencies for consistent execution. Docker facilitates dependency management, scalability, and environment consistency, crucial for seamless deployment and management in SmartHighwayNet. Integration with Docker Compose further orchestrates interconnected services for unified system management.
+
+![Screenshot 38](doc/screenshots/screenshot_38.PNG)
+
+![Screenshot 39](doc/screenshots/screenshot_39.PNG)
+
+![Screenshot 40](doc/screenshots/screenshot_40.PNG)
 
 ## Rake Tasks
 
