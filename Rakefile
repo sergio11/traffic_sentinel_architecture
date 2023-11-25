@@ -323,6 +323,12 @@ namespace :SmartHighwayNet do
 		task :deploy => [ :check_docker_task, :login, :check_deployment_file, :cleaning_environment_task, :start  ] do
 			puts "Deploy management and monitoring layer container"
 		end
+
+		desc "Launch Tkinter client for management and monitoring"
+		task :launch_monitoring_client do
+			puts "Launching Tkinter client for management and monitoring layer..."
+			system("cd management-monitoring-layer/monitor && python app.py")
+		end
 	  end
 
 	namespace :RealTimeDataProcessingLayer do
