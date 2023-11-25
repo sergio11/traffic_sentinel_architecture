@@ -241,7 +241,7 @@ def get_frames(camera_id):
 
         query = {
             "camera_id": camera_id,
-            "frame_timestamp": {"$gte": start_time, "$lte": end_time}
+            "frame_timestamp": {"$gte": int(start_time.timestamp()), "$lte": int(end_time.timestamp())}
         }
 
         # Check if the filter_exceeded_speed parameter is present and set to true
@@ -249,6 +249,10 @@ def get_frames(camera_id):
             query["processed_frame.detected_vehicles.exceeded_max_speed"] = True
 
         frames = list(db.frames.find(query).skip((page - 1) * page_size).limit(page_size))
+
+        for frame in frames:
+            if '_id' in frame:
+                frame['_id'] = str(frame['_id'])
 
         logger.debug(f"Retrieved frames: {frames}")
 
