@@ -212,6 +212,75 @@ Furthermore, MongoDB's distributed nature and horizontal scalability offer the c
 ![Screenshot 33](doc/screenshots/screenshot_33.PNG)
 
 ![Screenshot 14](doc/screenshots/screenshot_14.PNG)
+
+### Flask Services
+
+The Flask services within the data services layer play a pivotal role in mediating interactions between the application's frontend and the MongoDB database. These services serve as a bridge, offering a set of endpoints that facilitate Create, Read, Update, and Delete (CRUD) operations on the database. They handle data requests, processing incoming HTTP requests from the frontend, and executing corresponding actions on the database, ensuring seamless data access.
+
+![Screenshot 35](doc/screenshots/screenshot_35.PNG)
+
+One primary purpose of these Flask services is to encapsulate the business logic associated with data management. They implement specific rules, validations, and transformations required before storing or retrieving data from MongoDB. These services enable developers to centralize and organize intricate data-handling operations, ensuring data consistency, integrity, and adherence to defined business rules or constraints.
+
+![Screenshot 36](doc/screenshots/screenshot_36.PNG)
+
+Furthermore, these Flask services provide secure access to the database. They manage authentication, authorization, and data validation, verifying the legitimacy of incoming requests, authorizing access based on user permissions, and enforcing security measures to protect sensitive data. This layer ensures that only authorized entities can access, modify, or delete specific data within the MongoDB database, safeguarding against potential security threats and unauthorized access.
+
+![Screenshot 19](doc/screenshots/screenshot_19.PNG)
+
+![Screenshot 20](doc/screenshots/screenshot_20.PNG)
+
+## Rake Tasks
+
+This project leverages Rake to manage various tasks related to infrastructure and data management. Below is a table listing some of the available Rake tasks along with their respective descriptions. These tasks are pivotal for configuring, managing, and maintaining different aspects of the SmartHighwayNet system.
+
+Please refer to the project documentation for more details on how to execute each task and their purposes within the project's workflow.
+
+| Task | Description |
+|------|-------------|
+| `SmartHighwayNet:login` | Authenticating with existing credentials. |
+| `SmartHighwayNet:cleaning_environment_task` | Cleaning Environment. |
+| `SmartHighwayNet:status` | Show Containers Status. |
+| `SmartHighwayNet:check_docker_task` | Check Docker and Docker Compose. |
+| `SmartHighwayNet:DataStorageLayer:check_deployment_file` | Check data storage layer deployment file. |
+| `SmartHighwayNet:DataStorageLayer:start` | Start data storage layer containers. |
+| `SmartHighwayNet:DataStorageLayer:stop` | Stop data storage layer container. |
+| `SmartHighwayNet:DataStorageLayer:deploy` | Deploy data storage layer container. |
+| `SmartHighwayNet:DataStorageLayer:initialize_and_unseal` | Initialize and Unseal Vault instance. |
+| `SmartHighwayNet:DataStorageLayer:seal` | Seal Vault instance. |
+| `SmartHighwayNet:DataStorageLayer:enable_secrets` | Enable secrets within a Vault instance. |
+| `SmartHighwayNet:DataStorageLayer:preload_fog_nodes` | Preload fog node configurations into Vault. |
+| `SmartHighwayNet:DataStorageLayer:retrieve_fog_nodes` | Retrieve fog node information securely stored in Vault. |
+| `SmartHighwayNet:DataStorageLayer:empty_vault` | Delete all secrets from the Vault. |
+| `SmartHighwayNet:DataStorageLayer:configure` | Configure Service Foundation layer by initializing, enabling secrets, and preloading tasks. |
+| `SmartHighwayNet:DataOrchestrationLayer:check_deployment_file` | Check data orchestration layer deployment file. |
+| `SmartHighwayNet:DataOrchestrationLayer:start` |	Start data orchestration layer containers. |
+| `SmartHighwayNet:DataOrchestrationLayer:stop` |	Stop data orchestration layer container. |
+| `SmartHighwayNet:DataOrchestrationLayer:deploy` |	Deploy data orchestration layer container. |
+| `SmartHighwayNet:ManagementAndMonitoringLayer:check_deployment_file` |	Check management and monitoring layer deployment file. |
+| `SmartHighwayNet:ManagementAndMonitoringLayer:start` |	Start management and monitoring layer containers. |
+| `SmartHighwayNet:ManagementAndMonitoringLayer:stop` |	Stop management and monitoring layer container. |
+| `SmartHighwayNet:ManagementAndMonitoringLayer:deploy` |	Deploy management and monitoring layer container. |
+| `SmartHighwayNet:ManagementAndMonitoringLayer:launch_monitoring_client` |	Launch Tkinter client for management and monitoring. |
+| `SmartHighwayNet:RealTimeDataProcessingLayer:build` |	Build stream processing layer. |
+| `SmartHighwayNet:RealTimeDataProcessingLayer:check_deployment_file` |	Check stream processing layer deployment file. |
+| `SmartHighwayNet:RealTimeDataProcessingLayer:start` |	Start stream processing layer containers. |
+| `SmartHighwayNet:RealTimeDataProcessingLayer:stop` |	Stop stream processing layer container. |
+| `SmartHighwayNet:RealTimeDataProcessingLayer:deploy` |	Deploy stream processing layer container. |
+| `SmartHighwayNet:RealTimeDataProcessingLayer:install_job` |	Install and run VideoFrameProcessorFlink. |
+| `SmartHighwayNet:DataServicesLayer:build` |	Build data services layer. |
+| `SmartHighwayNet:DataServicesLayer:check_admin_user` |	Check admin user status. |
+| `SmartHighwayNet:DataServicesLayer:preload_cameras` |	Preload cameras. |
+| `SmartHighwayNet:DataServicesLayer:preload_provisioning` |	Preload provisioning. |
+| `SmartHighwayNet:DataServicesLayer:check_deployment_file` |	Check data services layer Deployment File. |
+| `SmartHighwayNet:DataServicesLayer:start` |	Start data services layer containers. |
+| `SmartHighwayNet:DataServicesLayer:stop` |	Stop data services layer container. |
+| `SmartHighwayNet:DataServicesLayer:deploy` |	Deploy data services layer container. |
+| `SmartHighwayNet:FogStreamingLayer:build` |	Build the Docker image for the Fog node. |
+| `SmartHighwayNet:FogStreamingLayer:check_deployment_file` |	Check Fog streaming layer Deployment File. |
+| `SmartHighwayNet:FogStreamingLayer:start` |	Start fog streaming layer containers. |
+| `SmartHighwayNet:FogStreamingLayer:stop` |	Stop fog streaming layer container. |
+| `SmartHighwayNet:FogStreamingLayer:deploy` |	Deploy fog streaming layer container. |
+
 ## 🤝 Contributing
 
 We welcome contributions from the community. Feel free to open issues, suggest enhancements, or submit pull requests to help enhance Traffic Sentinel.
