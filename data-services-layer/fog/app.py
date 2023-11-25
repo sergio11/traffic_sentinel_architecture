@@ -188,7 +188,7 @@ def authenticate():
                 session_uuid = str(uuid.uuid4())
                 # Store authenticated session UUID in Redis with a 1-hour expiration  - 3600
                 redis_session_key = f"{mac_address}_session"
-                redis_client.set(redis_session_key, session_uuid, ex=60)
+                redis_client.set(redis_session_key, session_uuid, ex=36000)
                 logger.info(f"Authentication successful for MAC {mac_address}. Session ID: {session_uuid} with session key: {redis_session_key}")
                 # Save session information
                 session_data = {
@@ -391,7 +391,7 @@ def _get_stored_password(mac_address, vault_token):
     """
     try:
         # Remove colons from MAC address
-        mac_address = mac_address.replace(":", "")
+        mac_address = mac_address.replace(":", "").lower()
         client = hvac.Client(url=VAULT_ADDRESS, token=vault_token)
         secret = client.secrets.kv.read_secret(
             path="fog-nodes-v1/" + mac_address

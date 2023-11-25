@@ -18,7 +18,7 @@ services:
     container_name: fog_node_2
     env_file:
       - ./.env
-    mac_address: "23:54:ac:43:12:03"
+    mac_address: "08:00:27:AB:CD:EF"
 
   # Fog Node Service Configuration
   fog_node_3:
@@ -26,4 +26,4 @@ services:
     container_name: fog_node_3
     env_file:
       - ./.env
-    mac_address: "15:23:56:34:12:03"
+    mac_address: "00:16:3e:7a:5d:8f"
