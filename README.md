@@ -112,6 +112,8 @@ This project is licensed under the [MIT License](LICENSE).
 
 In this section some details of the components that make the project possible will be shown and explained.
 
+### HAProxy
+
 HAProxy plays a pivotal role within the Traffic Sentinel architecture as a load balancer, primarily responsible for distributing incoming traffic evenly across multiple servers, applications, or nodes. This ensures the availability, reliability, and efficiency of the system.
 
 ![Screenshot 1](doc/screenshots/screenshot_1.PNG)
@@ -126,9 +128,22 @@ Beyond load balancing, HAProxy serves as a central point for traffic monitoring 
 
 In summary, within Traffic Sentinel, HAProxy provides a robust mechanism for efficiently distributing and managing network traffic, ensuring smooth and reliable operation of the system. It enhances scalability and availability of services offered by the traffic monitoring platform.
 
+### Apache Flink
+
+Apache Flink serves as a pivotal component for real-time data processing. This open-source framework specializes in distributed, scalable data stream processing. Within Traffic Sentinel, Flink is utilized to analyze and process data from traffic cameras and other connected IoT devices in real-time.
+
 ![Screenshot 4](doc/screenshots/screenshot_4.PNG)
+
+The primary purpose of Apache Flink in this project is to efficiently manage the ingestion of data from various sources. It processes high-speed data streams and performs operations like transformation, filtering, enrichment, and aggregation in real-time. This capability allows Traffic Sentinel to conduct instantaneous analysis and make real-time decisions based on the collected data.
+
 ![Screenshot 5](doc/screenshots/screenshot_5.PNG)
+
+Flink offers advanced real-time data processing capabilities that empower Traffic Sentinel to detect patterns, trends, and anomalies in traffic. This is crucial for continuous monitoring of traffic congestion, identification of vehicles exceeding speed limits, and detection of irregular behaviors on roads. Real-time data processing is fundamental in enhancing road safety and traffic flow efficiency.
+
 ![Screenshot 12](doc/screenshots/screenshot_12.PNG)
+
+Furthermore, Apache Flink is highly scalable and fault-tolerant. It efficiently handles large volumes of data and maintains system reliability even under high-stress situations. This scalability ensures Traffic Sentinel's optimal performance as the volume of data and connected IoT devices continues to grow.
+
 ![Screenshot 13](doc/screenshots/screenshot_13.PNG)
 ![Screenshot 6](doc/screenshots/screenshot_6.PNG)
 ![Screenshot 7](doc/screenshots/screenshot_7.PNG)
