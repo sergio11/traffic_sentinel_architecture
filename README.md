@@ -91,6 +91,42 @@ This layer houses multiple Flask services offering diverse functionalities:
 - **MinIO 📦:** An object storage server compatible with Amazon S3 API used for storing images and files in a scalable and high-performance manner.
 - **HAproxy 🔄:** An open-source load balancer used for improving the availability and reliability of the platform, ensuring smooth traffic management and distribution.
 
+### Screenshots 📷
+
+Here are some screenshots that demonstrate the functionality of Traffic Sentinel:
+
+| Screenshot 1 | Screenshot 2 |
+|-------------- |-------------- |
+| ![Screenshot](doc/screenshots/screenshot_16.PNG) | ![Screenshot](doc/screenshots/screenshot_17.PNG) |
+
+| Screenshot 1 | Screenshot 2 |
+|-------------- |-------------- |
+| ![Screenshot](doc/screenshots/screenshot_18.PNG) | ![Screenshot](doc/screenshots/screenshot_21.PNG) |
+
+| Screenshot 1 | Screenshot 2 |
+|-------------- |-------------- |
+| ![Screenshot](doc/screenshots/screenshot_22.PNG) | ![Screenshot](doc/screenshots/screenshot_23.PNG) |
+
+| Screenshot 1 | Screenshot 2 |
+|-------------- |-------------- |
+| ![Screenshot](doc/screenshots/screenshot_24.PNG) | ![Screenshot](doc/screenshots/screenshot_25.PNG) |
+
+| Screenshot 1 | Screenshot 2 |
+|-------------- |-------------- |
+| ![Screenshot](doc/screenshots/screenshot_26.PNG) | ![Screenshot](doc/screenshots/screenshot_27.PNG) |
+
+| Screenshot 1 | Screenshot 2 |
+|-------------- |-------------- |
+| ![Screenshot](doc/screenshots/screenshot_28.PNG) | ![Screenshot](doc/screenshots/screenshot_29.PNG) |
+
+| Screenshot 1 | Screenshot 2 |
+|-------------- |-------------- |
+| ![Screenshot](doc/screenshots/screenshot_30.PNG) | ![Screenshot](doc/screenshots/screenshot_31.PNG) |
+
+| Screenshot 1 | Screenshot 2 |
+|-------------- |-------------- |
+| ![Screenshot](doc/screenshots/screenshot_32.PNG) | ![Screenshot](doc/screenshots/screenshot_32.PNG) |
+
 ## Tools screenshots
 
 In this section some details of the components that make the project possible will be shown and explained.
@@ -165,14 +201,6 @@ Moreover, the integration of AkHQ.io, a graphical user interface (GUI) for manag
 
 By combining Kafka as the streaming platform and AkHQ.io as the visualization and management tool, Traffic Sentinel benefits from a robust and scalable architecture for handling real-time traffic data. Kafka ensures reliable data streaming and processing, while AkHQ.io offers comprehensive monitoring and management features, empowering users to effectively oversee and optimize the Kafka infrastructure powering the traffic monitoring system.
 
-## 🚀 Getting Started
-
-To begin using Traffic Sentinel, follow these steps:
-
-1. Clone the Traffic Sentinel repository.
-2. Install the required dependencies using the provided instructions.
-3. Configure each layer and service according to the setup guide.
-4. Run the platform using the designated start commands for each component.
 
 ## 🤝 Contributing
 
