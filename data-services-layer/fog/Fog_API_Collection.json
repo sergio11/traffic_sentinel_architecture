@@ -2,7 +2,8 @@
     "info": {
         "_postman_id": "c13e85c4-xxxx-xxxx-xxxx-5e4c18712345",
         "name": "Traffic Sentinel Fog API",
-        "description": "Postman collection for Traffic Sentinel Fog API"
+        "description": "Postman collection for Traffic Sentinel Fog API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "item": [
         {
