@@ -307,3 +307,13 @@ Traffic Sentinel is developed and maintained by Sergio Sánchez Sánchez. Specia
 
 ---
 
+## Visitors Count
+
+<img width="auto" src="https://profile-counter.glitch.me/traffic_sentinel_architecture/count.svg" />
+
+## Please Share & Star the repository to keep me motivated.
+  <a href = "https://github.com/sergio11/traffic_sentinel_architecture/stargazers">
+     <img src = "https://img.shields.io/github/stars/sergio11/traffic_sentinel_architecture" />
+  </a>
+
+
