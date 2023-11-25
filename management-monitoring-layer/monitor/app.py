@@ -7,12 +7,13 @@ import queue
 import threading
 import time
 import tkinter as tk
-from tkinter import ttk
+from tkinter import Toplevel, ttk
 from tkinter.ttk import Treeview
 from PIL import Image, ImageTk
 import requests
 import socketio
 import datetime
+from tkinter import messagebox
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -129,6 +130,7 @@ def display_home_screen(session_token):
             if item:
                 camera_id = tree.item(item, "values")[0] 
                 camera_name = tree.item(item, "values")[2]
+                root.destroy()
                 display_monitoring_screen(session_token, camera_id, camera_name)
 
 
@@ -187,7 +189,13 @@ def display_home_screen(session_token):
 
 
 def display_monitoring_screen(session_token, camera_id, camera_name):
+
     event_queue = queue.Queue()
+    current_socketio = None
+    update_gui_job_id = None
+    closing_monitoring_in_progress = False
+    existing_vehicles = {}
+
     root = tk.Tk()
     root.title(f"Traffic Sentinel - Monitoring #{camera_name}")
     root.geometry("1200x800")
@@ -217,7 +225,8 @@ def display_monitoring_screen(session_token, camera_id, camera_name):
         logo_label.image = logo
         logo_label.grid(row=0, column=0, padx=10, pady=5)
     except FileNotFoundError:
-        print(f"El archivo {logo_path} no se encontró.")
+        print(f"File {logo_path} not found")
+
 
     app_title_label = tk.Label(title_frame, bg="white", text="Traffic Sentinel - Driving Smarter Roads with IoT Traffic Monitoring", font=("Arial", 16, "bold"))
     app_title_label.grid(row=0, column=1, padx=10, pady=10)
@@ -240,7 +249,10 @@ def display_monitoring_screen(session_token, camera_id, camera_name):
     empty_label = tk.Label(right_frame, text="", font=("Arial", 12))
     empty_label.grid(row=0, column=0, columnspan=2)
     
-    annotated_frame_label = tk.Label(left_frame)
+    default_image = Image.open("resources/default_no_available.png")
+    default_image = default_image.resize((500, 400))
+    default_image_tk = ImageTk.PhotoImage(default_image)
+    annotated_frame_label = tk.Label(left_frame, image=default_image_tk)
     annotated_frame_label.pack(expand=True, fill='both', padx=20, pady=20)
 
     root.grid_rowconfigure(0, weight=0)
@@ -253,15 +265,16 @@ def display_monitoring_screen(session_token, camera_id, camera_name):
     vehicle_table_frame = tk.Frame(root, bg="white")
     vehicle_table_frame.grid(row=2, column=0, columnspan=2, sticky="nsew")
 
-    tree = Treeview(vehicle_table_frame, columns=("Vehicle ID", "Type", "Color", "Image"))
+    tree = Treeview(vehicle_table_frame, columns=("Vehicle ID", "Type", "Color", "Model", "Speed", "Direction"))
     scrollbar = tk.Scrollbar(vehicle_table_frame, orient='vertical', command=tree.yview)
     tree.configure(yscroll=scrollbar.set)
 
-    tree.heading("#0", text="Index")
     tree.heading("Vehicle ID", text="Vehicle ID")
     tree.heading("Type", text="Type")
     tree.heading("Color", text="Color")
-    tree.heading("Image", text="Image")
+    tree.heading("Model", text="Model")
+    tree.heading("Speed", text="Speed")
+    tree.heading("Direction", text="Direction")
 
     scrollbar.pack(side='right', fill='y')
     tree.pack(expand=True, fill='both')
@@ -274,10 +287,9 @@ def display_monitoring_screen(session_token, camera_id, camera_name):
 
     def update_annotated_frame(image_base64):
         if image_base64:
-            logger.info("update_annotated_frame.")
             annotated_frame_bytes = base64.b64decode(image_base64.split(',')[-1])
             annotated_frame_image = Image.open(io.BytesIO(annotated_frame_bytes))
-            annotated_frame_image = annotated_frame_image.resize((500, 400))
+            annotated_frame_image = annotated_frame_image.resize((600, 400))
             annotated_frame_tk = ImageTk.PhotoImage(annotated_frame_image)
             annotated_frame_label.configure(image=annotated_frame_tk)
             annotated_frame_label.image = annotated_frame_tk
@@ -289,9 +301,9 @@ def display_monitoring_screen(session_token, camera_id, camera_name):
         
         while retries < MAX_RETRIES:
             logger.info(f"Attempting connection... (Attempt {retries + 1}/{MAX_RETRIES})")
-            sio = socketio.Client()
+            current_socketio = socketio.Client()
 
-            @sio.on('new_frame')
+            @current_socketio.on('new_frame')
             def handle_new_frame(payload):
                 logger.info(f"on new frame received")
                 try:
@@ -299,28 +311,34 @@ def display_monitoring_screen(session_token, camera_id, camera_name):
                 except queue.Full:
                     pass
 
-            @sio.on('connect')
+            @current_socketio.on('connect')
             def on_connect():
                 logger.info("Connected to server")
-                sio.emit('subscribe_camera', {'session_token': session_token, 'camera_id': camera_id})
+                current_socketio.emit('subscribe_camera', {'session_token': session_token, 'camera_id': camera_id})
                 logger.info(f"Subscribed to camera {camera_id}")
                 root.event_generate("<<OnConnected>>", when="tail")
 
-            @sio.on('disconnect')
+            @current_socketio.on('disconnect')
             def on_disconnect():
                 logger.info("Disconnected from server")
                 root.event_generate("<<OnDisconnected>>", when="tail")
 
-            @sio.on('subscription_success')
+            @current_socketio.on('subscription_success')
             def on_subscribe_success(data):
                 logger.info(f"Subscription to camera successfully - {data}")
 
-            @sio.on('subscription_error')
+            @current_socketio.on('unsubscription_success')
+            def on_subscribe_success(data):
+                logger.info(f"Unsubscription from camera successfully - {data}")
+
+            @current_socketio.on('subscription_error')
             def on_subscribe_error(data):
                 logger.info(f"Subscription to camera error" - {data})
+                if current_socketio is not None:
+                    current_socketio.disconnect()
 
             try:
-                sio.connect(STREAM_SERVICE_ENDPOINT)
+                current_socketio.connect(STREAM_SERVICE_ENDPOINT)
                 break
             except Exception as e:
                 logger.error(f"Error connecting: {e}")
@@ -356,32 +374,34 @@ def display_monitoring_screen(session_token, camera_id, camera_name):
             logger.error(f"Error evaluating processed_frame JSON: {e}")
             processed_frame_payload = {}
 
-        number_of_vehicles_detected = processed_frame_payload.get('number_of_vehicles_detected', 0)
-        number_of_vehicles_label_value["text"] = str(number_of_vehicles_detected)
         if 'annotated_frame_base64' in processed_frame_payload:
             annotated_frame_base64 = processed_frame_payload['annotated_frame_base64']
             update_annotated_frame(annotated_frame_base64)
 
-        tree.delete(*tree.get_children())
-
         if 'detected_vehicles' in processed_frame_payload:
+            logger.info("detected_vehicles in processed_frame_payload CALLED!")
             detected_vehicles = processed_frame_payload['detected_vehicles']
             for idx, vehicle in enumerate(detected_vehicles):
                 vehicle_id = vehicle.get('vehicle_id', 'N/A')
                 vehicle_type = vehicle.get('vehicle_type', 'N/A')
                 color_info = json.loads(vehicle.get('color_info', '[]'))
                 color = color_info[0]['color'] if color_info else 'N/A'
+                speed_info = vehicle.get('speed_info', {})
+                speed = speed_info.get('kph', 'N/A')
+                direction_label = speed_info.get('direction_label', 'N/A')
+                model_info = json.loads(vehicle.get('model_info', '[]'))
+                make = model_info[0].get('make', 'N/A')
+                model = model_info[0].get('model', 'N/A')
+                make_model_combined = f"{make} {model}"
+                logger.info(f"#idx - #{idx} vehicle_id #{vehicle_id}")
+                if vehicle_id in existing_vehicles:
+                    item_id = existing_vehicles[vehicle_id]
+                    tree.item(item_id, values=(vehicle_id, vehicle_type, color, make_model_combined, speed, direction_label))
+                else:
+                    item_id = tree.insert("", tk.END, text=str(len(existing_vehicles)), values=(vehicle_id, vehicle_type, color, make_model_combined, speed, direction_label))
+                    existing_vehicles[vehicle_id] = item_id
 
-                tree.insert("", tk.END, text=str(idx), values=(vehicle_id, vehicle_type, color))
-
-                vehicle_frame_base64 = vehicle.get('vehicle_frame_base64', None)
-                if vehicle_frame_base64:
-                    vehicle_frame_bytes = base64.b64decode(vehicle_frame_base64.split(',')[-1])
-                    vehicle_frame_image = Image.open(io.BytesIO(vehicle_frame_bytes))
-                    vehicle_frame_image = vehicle_frame_image.resize((150, 100), Image.ANTIALIAS)
-                    vehicle_frame_tk = ImageTk.PhotoImage(vehicle_frame_image)
-
-                    tree.insert("", tk.END, values=("", "", "", vehicle_frame_tk))
+        number_of_vehicles_label_value["text"] = len(existing_vehicles)
         
     def update_gui():
         try:
@@ -389,11 +409,18 @@ def display_monitoring_screen(session_token, camera_id, camera_name):
             handle_frame_payload(json.loads(payload))
         except queue.Empty:
             pass
-        root.after(1000, update_gui)
+        global update_gui_job_id
+        update_gui_job_id = root.after(1000, update_gui)
+
+    def stop_update_gui():
+        global update_gui_job_id
+        if update_gui_job_id:
+            root.after_cancel(update_gui_job_id)
+            update_gui_job_id = None
         
     def handle_streaming_server_unreachable(event):
         root.destroy()
-        display_login_screen()
+        display_home_screen(session_token)
 
     def handle_on_connected(event):
         connected_label['text'] = "Connected"
@@ -405,17 +432,33 @@ def display_monitoring_screen(session_token, camera_id, camera_name):
         if connect_thread and connect_thread.is_alive():
             connect_thread.cancel()
             connect_thread.join()
-        connect_thread = threading.Thread(target=connect_to_server)
-        connect_thread.start()
-        
+        if closing_monitoring_in_progress:
+            root.destroy()
+            display_home_screen(session_token)
+        else:
+            connect_thread = threading.Thread(target=connect_to_server)
+            connect_thread.start()
+
     root.bind("<<StreamingServerUnreachable>>", handle_streaming_server_unreachable)
     root.bind("<<OnDisconnected>>", handle_on_disconnected)
     root.bind("<<OnConnected>>", handle_on_connected)
 
+    def on_closing():
+        if messagebox.askokcancel("Close Monitoring", "¿Are you sure to close monitoring?"):
+            global closing_monitoring_in_progress
+            closing_monitoring_in_progress = True
+            stop_update_gui()
+            if connect_thread and connect_thread.is_alive():
+                connect_thread.cancel()
+                connect_thread.join()
+            if current_socketio is not None:
+                current_socketio.emit('unsubscribe_camera', {'session_token': session_token, 'camera_id': camera_id})
+
+    root.protocol("WM_DELETE_WINDOW", on_closing)
+
     update_gui()
 
     connect_thread = threading.Thread(target=connect_to_server)
-    connect_thread.daemon = True
     connect_thread.start()
 
     root.mainloop()
