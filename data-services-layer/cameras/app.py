@@ -146,6 +146,10 @@ def update_camera():
         # Retrieve the updated camera information
         updated_camera_info = db.cameras.find_one({"camera_name": camera_name})
 
+        # Convert ObjectId to string before JSON serialization
+        if updated_camera_info and '_id' in updated_camera_info:
+            updated_camera_info['_id'] = str(updated_camera_info['_id'])
+
         logger.info("Camera information updated successfully.")
         return generate_response("success", "Camera information updated successfully", camera=updated_camera_info), 200
 
@@ -273,9 +277,14 @@ def list_cameras():
         # Retrieve the list of cameras from the database
         cameras = list(db.cameras.find())
 
-        logger.debug(f"Retrieved cameras: {cameras}")
+        formatted_cameras = []
+        for camera in cameras:
+            camera['_id'] = str(camera['_id'])
+            formatted_cameras.append(camera)
 
-        response_data = {"cameras": cameras}
+        logger.debug(f"Retrieved cameras: {formatted_cameras}")
+
+        response_data = {"cameras": formatted_cameras}
         return generate_response("success", "List of cameras retrieved successfully", data=response_data), 200
 
     except Exception as e:
