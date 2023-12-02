@@ -26,6 +26,10 @@
   <img src="https://img.shields.io/badge/Apache Nifi-D22128?style=for-the-badge&logo=Apache&logoColor=white" />
 </p>
 
+## More Details 📝
+
+For comprehensive information about this project, check out this [Medium article](https://sanchezsanchezsergio418.medium.com/traffic-sentinel-iot-solution-for-intelligent-road-surveillance-and-monitoring-d002110d431e).
+
 ## Key Features 🚀
 
 - **Real-Time Vehicle Detection and Tracking 🚗🔍**: Traffic Sentinel employs advanced machine learning models like YOLO (You Only Look Once) to detect and track vehicles in real-time video streams. It provides instantaneous and continuous tracking of vehicles on roads monitored by the IoT system.
