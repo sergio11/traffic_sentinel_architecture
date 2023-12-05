@@ -295,6 +295,86 @@ Please refer to the project documentation for more details on how to execute eac
 | `SmartHighwayNet:FogStreamingLayer:stop` |	Stop fog streaming layer container. |
 | `SmartHighwayNet:FogStreamingLayer:deploy` |	Deploy fog streaming layer container. |
 
+
+## 🚀 Steps to Launch the Platform 🛠️
+
+To deploy and launch the Traffic Sentinel platform, follow these steps:
+
+### Prerequisites
+
+Make sure you have Ruby installed and the Rake gem to execute the deployment tasks.
+
+```bash
+# Install the Rake gem (if not installed)
+gem install rake
+```
+
+### Running Rake Tasks
+Use the available Rake tasks to deploy each layer of the platform on separate machines. The tasks are organized in a specific order to ensure correct and flexible deployment.
+
+* Data Storage Layer
+
+```bash
+rake SmartHighwayNet:DataStorageLayer:start
+rake SmartHighwayNet:DataStorageLayer:configure
+rake SmartHighwayNet:DataStorageLayer:retrieve_fog_nodes
+```
+
+**Start Data Storage Layer ⚙️:** Initiates the services or containers related to the Data Storage Layer, enabling storage functionality required by the platform.
+**Configure Data Storage Layer 🛠️:** Configures the Data Storage Layer services with necessary settings.
+**Retrieve Fog Nodes 🌐:** Fetches fog node information and configurations required for the Data Storage Layer. This command ensures the layer has configured successfully.
+
+* Data Orchestration Layer
+
+```bash
+rake SmartHighwayNet:DataOrchestrationLayer:start
+```
+**Start Data Orchestration Layer 🔄:** Launches the services or containers associated with the Data Orchestration Layer, facilitating seamless data movement and integration between different components of the platform.
+
+* Real-Time Data Processing Layer
+
+```bash
+rake SmartHighwayNet:RealTimeDataProcessingLayer:start
+rake SmartHighwayNet:RealTimeDataProcessingLayer:install_job
+```
+
+**Start Real-Time Data Processing Layer ⚡:** Activates the services or containers dedicated to real-time data processing. This step enables the platform to process incoming data streams in real-time.
+**Install Real-Time Processing Job 🚀:** Install and initialize the specific job responsible for processing real-time data streams within the processing layer.
+
+* Data Services Layer
+
+```bash
+rake SmartHighwayNet:DataServicesLayer:start
+rake SmartHighwayNet:DataServicesLayer:check_admin_user
+rake SmartHighwayNet:DataServicesLayer:preload_cameras
+rake SmartHighwayNet:DataServicesLayer:preload_provisioning
+```
+
+**Start Data Services Layer 🌐:** Launches the services or containers for handling various data-related functionalities and user interactions within the platform.
+**Check Admin User 👤:** Verifies the status or existence of an administrative user required for managing and accessing specific functionalities within the Data Services Layer.
+**Preload Cameras 📷:** Loads or prepares configurations related to cameras used for traffic monitoring into the Data Services Layer, ensuring their availability and functionality.
+**Preload Provisioning 🛠️:** Prepares or initializes provisioning configurations essential for the proper functioning of the Data Services Layer.
+
+* Fog Streaming Layer
+
+```bash
+rake SmartHighwayNet:FogStreamingLayer:start
+```
+
+**Start Fog Streaming Layer 🌐:** Activates the fog node streaming services or containers, essential for handling data transmission and interactions between fog nodes and the platform.
+  
+* Management and Monitoring Layer
+
+```bash
+rake SmartHighwayNet:ManagementAndMonitoringLayer:start
+rake SmartHighwayNet:ManagementAndMonitoringLayer:launch_monitoring_client
+```
+
+**Start Management and Monitoring Layer 🚀:** Initiates the services or containers responsible for managing and monitoring the overall platform functionalities and operations.
+**Launch Monitoring Client 🖥️:** Opens or activates a monitoring client interface for monitoring.
+
+Remember to execute these tasks in the mentioned order to ensure proper deployment of each layer of the Traffic Sentinel platform.
+
 ## 🤝 Contributing
 
 We welcome contributions from the community. Feel free to open issues, suggest enhancements, or submit pull requests to help enhance Traffic Sentinel.
