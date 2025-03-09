@@ -8,9 +8,10 @@
 
 🌐 Unleash the potential of Traffic Sentinel as it transforms data streams into actionable intelligence, paving the way for smarter and safer roadways.
 
-I would like to express my gratitude to the *[IoT Traffic Surveillance System using Adaptive Video Encoding](https://github.com/guptavasu1213/IoT-Traffic-Surveillance-System)* project for inspiring the development of *Traffic Sentinel*. While no code was directly used, the fog-node architecture and real-time data processing approach were crucial in shaping this solution. The project’s innovative use of IoT and edge computing has helped conceptualize a scalable traffic monitoring system, paving the way for smarter roadways.
+I would like to express my gratitude to the *[IoT Traffic Surveillance System using Adaptive Video Encoding](https://github.com/guptavasu1213/IoT-Traffic-Surveillance-System)* project for serving as an inspiration in the development of *Traffic Sentinel*. While no code was directly used, the fog-node architecture and real-time data processing concepts helped shape the idea for this solution.
 
-Thank you to the contributors of this project for providing valuable insights and inspiration.
+Thank you to the contributors of this project for providing valuable insights.
+
 
 <p align="center">
   <img src="https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white" />
@@ -381,10 +382,9 @@ Remember to execute these tasks in the mentioned order to ensure proper deployme
 
 ## Acknowledgments
 
-I would like to express my gratitude to the *[IoT Traffic Surveillance System using Adaptive Video Encoding](https://github.com/guptavasu1213/IoT-Traffic-Surveillance-System)* project for inspiring the development of *Traffic Sentinel*. While no code was directly used, the fog-node architecture and real-time data processing approach were crucial in shaping this solution. The project’s innovative use of IoT and edge computing has helped conceptualize a scalable traffic monitoring system, paving the way for smarter roadways.
+I would like to express my gratitude to the *[IoT Traffic Surveillance System using Adaptive Video Encoding](https://github.com/guptavasu1213/IoT-Traffic-Surveillance-System)* project for serving as an inspiration in the development of *Traffic Sentinel*. While no code was directly used, the fog-node architecture and real-time data processing concepts helped shape the idea for this solution.
 
-Thank you to the contributors of this project for providing valuable insights and inspiration.
-
+Thank you to the contributors of this project for providing valuable insights.
 
 ## 🤝 Contributing
 
