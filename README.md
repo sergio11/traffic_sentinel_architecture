@@ -8,6 +8,10 @@
 
 🌐 Unleash the potential of Traffic Sentinel as it transforms data streams into actionable intelligence, paving the way for smarter and safer roadways.
 
+I would like to express my gratitude to the *[IoT Traffic Surveillance System using Adaptive Video Encoding](https://github.com/guptavasu1213/IoT-Traffic-Surveillance-System)* project for inspiring the development of *Traffic Sentinel*. While no code was directly used, the fog-node architecture and real-time data processing approach were crucial in shaping this solution. The project’s innovative use of IoT and edge computing has helped conceptualize a scalable traffic monitoring system, paving the way for smarter roadways.
+
+Thank you to the contributors of this project for providing valuable insights and inspiration.
+
 <p align="center">
   <img src="https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white" />
   <img src="https://img.shields.io/badge/Apache_Kafka-231F20?style=for-the-badge&logo=apache-kafka&logoColor=white" />
@@ -374,6 +378,13 @@ rake SmartHighwayNet:ManagementAndMonitoringLayer:launch_monitoring_client
 **Launch Monitoring Client 🖥️:** Opens or activates a monitoring client interface for monitoring.
 
 Remember to execute these tasks in the mentioned order to ensure proper deployment of each layer of the Traffic Sentinel platform.
+
+## Acknowledgments
+
+I would like to express my gratitude to the *[IoT Traffic Surveillance System using Adaptive Video Encoding](https://github.com/guptavasu1213/IoT-Traffic-Surveillance-System)* project for inspiring the development of *Traffic Sentinel*. While no code was directly used, the fog-node architecture and real-time data processing approach were crucial in shaping this solution. The project’s innovative use of IoT and edge computing has helped conceptualize a scalable traffic monitoring system, paving the way for smarter roadways.
+
+Thank you to the contributors of this project for providing valuable insights and inspiration.
+
 
 ## 🤝 Contributing
 
