@@ -385,6 +385,11 @@ rake SmartHighwayNet:ManagementAndMonitoringLayer:launch_monitoring_client
 
 Remember to execute these tasks in the mentioned order to ensure proper deployment of each layer of the Traffic Sentinel platform.
 
+## ⚠️ Disclaimer  
+**Traffic Sentinel is a practice project developed for learning purposes.** This project was created to explore and integrate **IoT-based traffic monitoring solutions** using technologies such as **Apache Flink, MQTT, Redis, and YOLO**. It is not intended for real-world deployment but serves as an educational exercise in **real-time data processing, fog computing, and intelligent traffic analysis**.  
+
+While this project was inspired by research and existing implementations, all development was carried out independently as part of a learning experience.  
+
 ## Acknowledgments
 
 I would like to express my gratitude to the *[IoT Traffic Surveillance System using Adaptive Video Encoding](https://github.com/guptavasu1213/IoT-Traffic-Surveillance-System)* project for serving as an inspiration in the development of *Traffic Sentinel*. While no code was directly used, the fog-node architecture and real-time data processing concepts helped shape the idea for this solution.
