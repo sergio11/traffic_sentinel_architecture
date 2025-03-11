@@ -12,6 +12,11 @@ I would like to express my gratitude to the *[IoT Traffic Surveillance System us
 
 Thank you to the contributors of this project for providing valuable insights.
 
+## ⚠️ Disclaimer  
+**Traffic Sentinel is a practice project developed for learning purposes.** This project was created to explore and integrate **IoT-based traffic monitoring solutions** using technologies such as **Apache Flink, MQTT, Redis, and YOLO**. It is not intended for real-world deployment but serves as an educational exercise in **real-time data processing, fog computing, and intelligent traffic analysis**.  
+
+While this project was inspired by research and existing implementations, all development was carried out independently as part of a learning experience.  
+
 
 <p align="center">
   <img src="https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white" />
