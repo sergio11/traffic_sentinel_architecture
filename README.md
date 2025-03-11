@@ -1,6 +1,6 @@
 # 🚦 Traffic Sentinel - Driving Smarter Roads with IoT Traffic Monitoring 🌐
 
-<img width="300px" align="left" src="./doc/logo.PNG" />
+<img width="300px" align="left" src="./doc/logo.webp" />
 
 🚦 Traffic Sentinel drives the future of traffic monitoring with a scalable IoT-powered system. Seamlessly processing live feeds from IP cameras, this cutting-edge solution employs YOLO (You Only Look Once) for intelligent vehicle detection, offering real-time insights into dynamic traffic patterns on roads.
 
