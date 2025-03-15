@@ -113,9 +113,9 @@ This layer houses multiple Flask services offering diverse functionalities:
 
 Here are some screenshots that demonstrate the functionality of Traffic Sentinel:
 
-| Screenshot 1 | Screenshot 2 |
-|-------------- |-------------- |
-| ![Screenshot](doc/screenshots/screenshot_16.PNG) | ![Screenshot](doc/screenshots/screenshot_17.PNG) |
+| Screenshot 1 |
+|-------------- |
+| ![Screenshot](doc/screenshots/screenshot_16.PNG)
 
 | Screenshot 1 | Screenshot 2 |
 |-------------- |-------------- |
