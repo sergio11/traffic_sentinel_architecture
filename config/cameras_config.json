@@ -1,0 +1,34 @@
+{ 
+    "cameras": [
+        {
+          "camera_name": "[[CAME_NAME]]",
+          "region": "[[CAME_REGION]]",
+          "address": "[[CAME_ADDRESS]]",
+          "max_speed_limit": 120,
+          "camera_url": "[[CAMERA_URL]]",
+          "camera_url_params": "[[CAMERA_URL_PARAMS]]",
+          "camera_username": "test",
+          "camera_password": "test"
+        },
+        {
+          "camera_name": "[[CAME_NAME]]",
+          "region": "[[CAME_REGION]]",
+          "address": "[[CAME_ADDRESS]]",
+          "max_speed_limit": 120,
+          "camera_url": "[[CAMERA_URL]]",
+          "camera_url_params": "[[CAMERA_URL_PARAMS]]",
+          "camera_username": "test",
+          "camera_password": "test"
+        },
+        {
+          "camera_name": "[[CAME_NAME]]",
+          "region": "[[CAME_REGION]]",
+          "address": "[[CAME_ADDRESS]]",
+          "max_speed_limit": 120,
+          "camera_url": "[[CAMERA_URL]]",
+          "camera_url_params": "[[CAMERA_URL_PARAMS]]",
+          "camera_username": "test",
+          "camera_password": "test"
+        }
+    ]
+}

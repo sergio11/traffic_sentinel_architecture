@@ -1,0 +1,16 @@
+{ 
+    "provisioning": [
+        {
+            "mac_address": "02:42:ac:11:00:02",
+            "camera_name": "[[CAMERA_NAME]]"
+        },
+        {
+            "mac_address": "08:00:27:AB:CD:EF",
+            "camera_name": "[[CAMERA_NAME]]"
+        },
+        {
+            "mac_address": "00:16:3e:7a:5d:8f",
+            "camera_name": "[[CAMERA_NAME]]"
+        }
+    ]
+}
