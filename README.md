@@ -405,10 +405,6 @@ I would like to express my gratitude to the *[IoT Traffic Surveillance System us
 
 Thank you to the contributors of this project for providing valuable insights.
 
-## 🤝 Contributing
-
-We welcome contributions from the community. Feel free to open issues, suggest enhancements, or submit pull requests to help enhance Traffic Sentinel.
-
 ## 📝 License
 
 This project is licensed under the [MIT License](LICENSE).
@@ -424,10 +420,5 @@ Traffic Sentinel is developed and maintained by Sergio Sánchez Sánchez. Specia
 ## Visitors Count
 
 <img width="auto" src="https://profile-counter.glitch.me/traffic_sentinel_architecture/count.svg" />
-
-## Please Share & Star the repository to keep me motivated.
-  <a href = "https://github.com/sergio11/traffic_sentinel_architecture/stargazers">
-     <img src = "https://img.shields.io/github/stars/sergio11/traffic_sentinel_architecture" />
-  </a>
 
 
