@@ -2,11 +2,11 @@
 
 <img width="300px" align="left" src="./doc/logo.webp" />
 
-🚦 Traffic Sentinel drives the future of traffic monitoring with a scalable IoT-powered system. Seamlessly processing live feeds from IP cameras, this cutting-edge solution employs YOLO (You Only Look Once) for intelligent vehicle detection, offering real-time insights into dynamic traffic patterns on roads.
+📚🧪 **Traffic Sentinel** is a learning-focused **Proof of Concept (POC)** that explores how a scalable IoT architecture can be applied to intelligent traffic monitoring. The project processes live 📷 IP camera streams and leverages YOLO (You Only Look Once) for vehicle detection, enabling real-time insights into traffic patterns on highways and roads. 🚗🛣️
 
-🔍 Leveraging the power of Fog nodes, Traffic Sentinel ensures swift intermediate processing, optimizing the flow of data. Apache Flink takes the wheel for efficient data processing, while Redis steps in for caching and seamless session management. The communication highway between nodes is orchestrated through the agile MQTT protocol, ensuring a synchronized and responsive traffic monitoring experience.
+🔍 By leveraging **Fog nodes**, Traffic Sentinel focuses on intermediate, low-latency processing close to the data source. **Apache Flink** is used for stream processing, while **Redis** supports caching and lightweight session management. Communication between nodes is handled through the **MQTT protocol**, enabling a responsive and distributed monitoring flow.
 
-🌐 Unleash the potential of Traffic Sentinel as it transforms data streams into actionable intelligence, paving the way for smarter and safer roadways.
+🌐 The main objective of this project is **learning and experimentation** with IoT, edge/fog computing, and real-time stream processing concepts, transforming data streams into actionable insights in an educational context.
 
 I would like to express my gratitude to the *[IoT Traffic Surveillance System using Adaptive Video Encoding](https://github.com/guptavasu1213/IoT-Traffic-Surveillance-System)* project for serving as an inspiration in the development of *Traffic Sentinel*. While no code was directly used, the fog-node architecture and real-time data processing concepts helped shape the idea for this solution.
 
