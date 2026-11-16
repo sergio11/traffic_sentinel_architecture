@@ -32,7 +32,7 @@ services:
   # It provides distributed coordination for our Kafka cluster.
   # http://zookeeper.apache.org/
   zookeeper:
-    image: docker.io/bitnami/zookeeper:3.9
+    image: docker.io/soldevelo/zookeeper:3.9
     container_name: zookeeper
     ports:
       - 2181:2181
@@ -48,7 +48,7 @@ services:
   # real-time streaming applications that transform or react to the streams of data.
   # http://kafka.apache.org/
   kafka:
-    image: docker.io/bitnami/kafka:3.6
+    image: docker.io/soldevelo/kafka:3.6
     container_name: kafka
     ports:
       - 9092:9092
